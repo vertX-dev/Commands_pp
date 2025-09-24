@@ -1,0 +1,66 @@
+{
+  "format_version": 2,
+  "metadata": {
+    "authors": [
+      "vertX"
+    ],
+    "url": "",
+    "product_type": "addon"
+  },
+  "header": {
+    "name": "Commands++ v13.4",
+    "description": "Add new powerfull commands.",
+    "uuid": "6a412e2e-4354-4bd8-aa39-3f9a8681ef35",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      80
+    ]
+  },
+  "modules": [
+    {
+      "type": "data",
+      "uuid": "d1ad661d-f2eb-4cfc-8825-187f461759a3",
+      "version": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "type": "script",
+      "language": "javascript",
+      "uuid": "923a4e61-c5c0-4e95-9473-4c32c57b2e93",
+      "version": [
+        1,
+        0,
+        1
+      ],
+      "entry": "scripts/main.js",
+      "name": "Dev commands Script"
+    }
+  ],
+  "dependencies": [
+    {
+      "uuid": "4159473d-e01a-469e-abe1-ef3456553283",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "module_name": "@minecraft/server",
+      "version": "2.1.0"
+    },
+    {
+      "module_name": "@minecraft/server-ui",
+      "version": "2.0.0"
+    }
+  ]
+}
