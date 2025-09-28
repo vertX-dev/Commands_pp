@@ -477,4 +477,22 @@ export const COMMANDS = [
         ],
         keyWords: ["system", "op", "admin", "commands", "scripts", "run"],
     },
+    {
+        command: "aliascreate",
+        description: "Create command alias",
+        examples: ['/aliascreate greet say "Hello, world!"', '/aliascreate healme "heal @s both true"'],
+        keyWords: ["alias", "create", "command", "shortcut", "custom", "bind", "macro"],
+    },
+    {
+        command: "aliasdelete",
+        description: "Delete command alias",
+        examples: ["/aliasdelete greet", "/aliasdelete healme"],
+        keyWords: ["alias", "delete", "command", "remove", "shortcut", "custom"],
+    },
+    {
+        command: "al",
+        description: "Execute command alias",
+        examples: ["/al greet", "/al healme"],
+        keyWords: ["alias", "execute", "command", "shortcut", "custom", "run"],
+    },
 ];

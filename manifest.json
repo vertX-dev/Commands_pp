@@ -8,9 +8,9 @@
     "product_type": "addon"
   },
   "header": {
-    "name": "Commands++ v13.4",
-    "description": "Add new powerfull commands.",
-    "uuid": "6a412e2e-4354-4bd8-aa39-3f9a8681ef35",
+    "name": "Commands++ v13.8",
+    "description": "Add new powerful commands.",
+    "uuid": "58bf1e0b-b520-4549-928e-5295c5076b56",
     "version": [
       1,
       0,
@@ -25,7 +25,7 @@
   "modules": [
     {
       "type": "data",
-      "uuid": "d1ad661d-f2eb-4cfc-8825-187f461759a3",
+      "uuid": "539abd4c-e198-4c02-a138-dacce846d12a",
       "version": [
         1,
         0,
@@ -35,7 +35,7 @@
     {
       "type": "script",
       "language": "javascript",
-      "uuid": "923a4e61-c5c0-4e95-9473-4c32c57b2e93",
+      "uuid": "90b245fe-572d-4d55-822e-321d43f72ad5",
       "version": [
         1,
         0,
@@ -47,7 +47,7 @@
   ],
   "dependencies": [
     {
-      "uuid": "4159473d-e01a-469e-abe1-ef3456553283",
+      "uuid": "6041de61-9a63-4314-8281-b246aaf93397",
       "version": [
         1,
         0,
@@ -62,5 +62,8 @@
       "module_name": "@minecraft/server-ui",
       "version": "2.0.0"
     }
+  ],
+  "capabilities": [
+    "script_eval"
   ]
 }

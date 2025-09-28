@@ -1,6 +1,6 @@
 import { system, world, CommandPermissionLevel, CustomCommandStatus, CustomCommandParamType, EquipmentSlot, BlockPermutation, ItemStack, MoonPhase, EnchantmentSlot } from "@minecraft/server";
 
-import { uiManager, ActionFormData, ModalFormData } from "@minecraft/server-ui";
+import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
 
 import { FONTS } from "./buildTextFont.js";
 import { PALLETS } from "./blockPallets.js";
@@ -935,6 +935,30 @@ system.beforeEvents.startup.subscribe((init) => {
         ],
     };
 
+    const aliasCreateCommand = {
+        name: "vertx:aliascreate",
+        description: "Create custom command aliases",
+        permissionLevel: CommandPermissionLevel.GameDirectors,
+        mandatoryParameters: [
+            { type: CustomCommandParamType.String, name: "Alias name" },
+            { type: CustomCommandParamType.String, name: "Command to alias" },
+        ],
+    };
+
+    const aliasDeleteCommand = {
+        name: "vertx:aliasdelete",
+        description: "Delete custom command alias",
+        permissionLevel: CommandPermissionLevel.GameDirectors,
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Alias name" }],
+    };
+
+    const aliasExecuteCommand = {
+        name: "vertx:al",
+        description: "Execute custom command alias",
+        permissionLevel: CommandPermissionLevel.GameDirectors,
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Alias name" }],
+    };
+
     // Register all commands
     init.customCommandRegistry.registerCommand(addLoreCommand, addLoreFunction);
     init.customCommandRegistry.registerCommand(addBlockCommand, addBlockFunction);
@@ -1018,7 +1042,79 @@ system.beforeEvents.startup.subscribe((init) => {
     init.customCommandRegistry.registerCommand(replaceLoreLineFindCommand, replaceLoreLineFindFunction);
     init.customCommandRegistry.registerCommand(showCommandLogsCommand, showCommandLogsFunction);
     init.customCommandRegistry.registerCommand(systemCommand, systemFunction);
+    init.customCommandRegistry.registerCommand(aliasCreateCommand, aliasCreateFunction);
+    init.customCommandRegistry.registerCommand(aliasDeleteCommand, aliasDeleteFunction);
+    init.customCommandRegistry.registerCommand(aliasExecuteCommand, aliasExecuteFunction);
 });
+
+function aliasExecuteFunction(origin, aliasName) {
+    system.run(() => {
+        const commandAliases = world.getDynamicProperty("commandAliases") || "";
+        if (commandAliases != "") {
+            const aliases = JSON.parse(commandAliases);
+            if (aliases[aliasName]) {
+                if (origin.sourceEntity.typeId === "minecraft:player") {
+                    origin.sourceEntity.runCommand(aliases[aliasName]);
+                } else {
+                    let dimension = world.getDimension("overworld");
+                    dimension.runCommand(aliases[aliasName]);
+                }
+            } else {
+                if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" not found.`);
+            }
+        } else {
+            if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" not found.`);
+        }
+    });
+
+    return { status: CustomCommandStatus.Success };
+}
+
+function aliasDeleteFunction(origin, aliasName) {
+    system.run(() => {
+        const commandAliases = world.getDynamicProperty("commandAliases") || "";
+        if (commandAliases != "") {
+            const aliases = JSON.parse(commandAliases);
+            if (aliases[aliasName]) {
+                delete aliases[aliasName];
+                world.setDynamicProperty("commandAliases", JSON.stringify(aliases));
+                if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" deleted.`);
+            } else {
+                if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" not found.`);
+            }
+        } else {
+            if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" not found.`);
+        }
+    });
+
+    return { status: CustomCommandStatus.Success };
+}
+
+function aliasCreateFunction(origin, aliasName, command) {
+    system.run(() => {
+        if (!/^[a-zA-Z0-9_]+$/.test(aliasName)) {
+            origin.sourceEntity.sendMessage("Invalid alias name. Only alphanumeric characters and underscores are allowed.");
+            return { status: CustomCommandStatus.Failure };
+        }
+
+        const commandAliases = world.getDynamicProperty("commandAliases") || "";
+        if (commandAliases != "") {
+            const aliases = JSON.parse(commandAliases);
+            if (aliases[aliasName]) {
+                origin.sourceEntity.sendMessage(`Alias "${aliasName}" already exists.`);
+                return { status: CustomCommandStatus.Failure };
+            }
+            aliases[aliasName] = command;
+            world.setDynamicProperty("commandAliases", JSON.stringify(aliases));
+        } else {
+            const aliases = {};
+            aliases[aliasName] = command;
+            world.setDynamicProperty("commandAliases", JSON.stringify(aliases));
+        }
+    });
+
+    return { status: CustomCommandStatus.Success };
+}
 
 function systemFunction(origin, callType, runType, query, delay = 0, repeat = 0) {
     system.run(() => {
