@@ -8,7 +8,7 @@ export const COMMANDS = [
     {
         command: "/addblock",
         description: "Add block to multiblock",
-        examples: ["/addblock stone @s", "/addblock minecraft:oak_planks @a"],
+        examples: ["/addblock stone 1 @s", "/addblock minecraft:oak_planks", "/addblock dirt 100"],
         keyWords: ["block", "multiblock", "add", "building"],
     },
     {
@@ -494,5 +494,17 @@ export const COMMANDS = [
         description: "Execute command alias",
         examples: ["/al greet", "/al healme"],
         keyWords: ["alias", "execute", "command", "shortcut", "custom", "run"],
+    },
+    {
+        command: "createMultiblockHB",
+        description: "Create multi-block item from items in hotbar, or you can select range of slots",
+        examples: ["/createMultiblockHB 0 35", "/createMultiblockHB"],
+        keyWords: ["multiblock", "create", "hotbar", "blocks", "item"],
+    },
+    {
+        command: "variables",
+        description: "Manage custom global variables for use in commands and scripts",
+        examples: ["/system run script \"Variables.set('myVar', 42)\"", "/system run script \"Variables.get('myVar')\"", "/system run script \"Variables.delete('myVar')\""],
+        keyWords: ["variables", "custom", "manage", "set", "get", "delete", "list"],
     },
 ];

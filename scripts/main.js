@@ -1,153 +1,198 @@
-import { system, world, CommandPermissionLevel, CustomCommandStatus, CustomCommandParamType, EquipmentSlot, BlockPermutation, ItemStack, MoonPhase, EnchantmentSlot } from "@minecraft/server";
+import {
+    system,
+    world,
+    EnchantmentTypes,
+    EnchantmentType,
+    CommandPermissionLevel,
+    CustomCommandStatus,
+    CustomCommandParamType,
+    EquipmentSlot,
+    BlockPermutation,
+    ItemStack,
+    MoonPhase,
+    EnchantmentSlot,
+} from '@minecraft/server';
 
-import { ActionFormData, ModalFormData } from "@minecraft/server-ui";
+import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
 
-import { FONTS } from "./buildTextFont.js";
-import { PALLETS } from "./blockPallets.js";
-import { COMMANDS } from "./commandsSearch.js";
+import { FONTS } from './buildTextFont.js';
+//vertion 1.2.7
+import { PALLETS } from './blockPallets.js';
+//vertion 1.2.7
+import { COMMANDS } from './commandsSearch.js';
+
+class VariablesStorage {
+    constructor() {
+        this.storage = new Map();
+    }
+
+    create(name, value) {
+        this.storage.set(name, value);
+    }
+
+    delete(name) {
+        this.storage.delete(name);
+    }
+
+    get(name) {
+        return this.storage.get(name);
+    }
+
+    add(name, valueToAdd) {
+        this.storage.set(name, this.get(name) + valueToAdd);
+    }
+
+    update(name, value) {
+        this.create(name, value);
+    }
+}
+
+const Variables = new VariablesStorage();
 
 // Constants for hidden string markers
-const COMMAND_MARKER = "§c§b§i§n§d§t";
-const FUNCTION_MARKER = "§a§b§i§n§d§f";
-
+const COMMAND_MARKER = '§c§b§i§n§d§t';
+const FUNCTION_MARKER = '§a§b§i§n§d§f';
+const EQUIPMENT_SLOTS = [EquipmentSlot.Mainhand, EquipmentSlot.Offhand, EquipmentSlot.Head, EquipmentSlot.Chest, EquipmentSlot.Legs, EquipmentSlot.Feet];
+const EQUIPMENT_SLOTS_NH = [EquipmentSlot.Head, EquipmentSlot.Chest, EquipmentSlot.Legs, EquipmentSlot.Feet];
 function hideString(str, marker = COMMAND_MARKER) {
-    let encoded = "";
+    let encoded = '';
     for (const char of str) {
         encoded += `§${char}`;
     }
-    encoded += "§r";
+    encoded += '§r';
     return marker + encoded;
 }
 
 function revealString(hidden, marker = COMMAND_MARKER) {
     if (!hidden.startsWith(marker)) return null;
-    let data = hidden.slice(marker.length).replace(/§r$/, "");
+    let data = hidden.slice(marker.length).replace(/§r$/, '');
     const chars = [...data.matchAll(/§(.)/g)].map((match) => match[1]);
-    return chars.join("");
+    return chars.join('');
 }
 
 system.beforeEvents.startup.subscribe((init) => {
-    // Register enums for parameters that previously used raw strings
-    init.customCommandRegistry.registerEnum("vertx:LargeFillMode", ["replace", "keep", "outline", "hollow", "destroy"]);
-    init.customCommandRegistry.registerEnum("vertx:FigureMode", ["solid", "hollow", "keep"]);
-    init.customCommandRegistry.registerEnum("vertx:FindSlotMode", ["first", "all"]);
-    init.customCommandRegistry.registerEnum("vertx:HealMode", ["health", "hunger", "both"]);
-    init.customCommandRegistry.registerEnum("vertx:Direction", ["north", "south", "east", "west"]);
-    init.customCommandRegistry.registerEnum("vertx:FigureType", ["cube", "sphere", "cylinder", "pyramid"]);
-    init.customCommandRegistry.registerEnum("vertx:FontStyle", Object.keys(FONTS));
-    init.customCommandRegistry.registerEnum("vertx:GameMode", ["survival", "creative", "adventure", "spectator", "s", "c", "a", "sp"]);
-    init.customCommandRegistry.registerEnum("vertx:BoostDirection", ["up", "forward", "backward", "left", "right", "down"]);
-    init.customCommandRegistry.registerEnum("vertx:SurfaceMode", ["circle", "square"]);
-    init.customCommandRegistry.registerEnum("vertx:PlainMode", ["square", "triangle", "circle"]);
-    init.customCommandRegistry.registerEnum("vertx:WorldInfoType", ["time", "day", "moonphase", "players", "difficulty", "absolutetime", "weather", "spawn", "entities", "dimensions", "all"]);
-    init.customCommandRegistry.registerEnum("vertx:EnchantVariant", [
-        "all",
-        "sword",
-        "swordZombie",
-        "axe",
-        "pickaxe",
-        "shovel",
-        "bowInfinity",
-        "bowMending",
-        "crossbow",
-        "helmet",
-        "chestplate",
-        "leggings",
-        "boots",
-        "tridentLoyalty",
-        "tridentRiptide",
-        "fishing_rod",
+    //$ Register enums for parameters that previously used raw strings
+    init.customCommandRegistry.registerEnum('vertx:LargeFillMode', ['replace', 'keep', 'outline', 'hollow', 'destroy']);
+    init.customCommandRegistry.registerEnum('vertx:FigureMode', ['solid', 'hollow', 'keep']);
+    init.customCommandRegistry.registerEnum('vertx:FindSlotMode', ['first', 'all']);
+    init.customCommandRegistry.registerEnum('vertx:HealMode', ['health', 'hunger', 'both']);
+    init.customCommandRegistry.registerEnum('vertx:Direction', ['north', 'south', 'east', 'west']);
+    init.customCommandRegistry.registerEnum('vertx:FigureType', ['cube', 'sphere', 'cylinder', 'pyramid']);
+    init.customCommandRegistry.registerEnum('vertx:FontStyle', Object.keys(FONTS));
+    init.customCommandRegistry.registerEnum('vertx:GameMode', ['survival', 'creative', 'adventure', 'spectator', 's', 'c', 'a', 'sp']);
+    init.customCommandRegistry.registerEnum('vertx:BoostDirection', ['up', 'forward', 'backward', 'left', 'right', 'down']);
+    init.customCommandRegistry.registerEnum('vertx:SurfaceMode', ['circle', 'square']);
+    init.customCommandRegistry.registerEnum('vertx:PlainMode', ['square', 'triangle', 'circle']);
+    init.customCommandRegistry.registerEnum('vertx:WorldInfoType', ['time', 'day', 'moonphase', 'players', 'difficulty', 'absolutetime', 'weather', 'spawn', 'entities', 'dimensions', 'all']);
+    init.customCommandRegistry.registerEnum('vertx:EnchantVariant', [
+        'all',
+        'sword',
+        'swordZombie',
+        'axe',
+        'pickaxe',
+        'shovel',
+        'bowInfinity',
+        'bowMending',
+        'crossbow',
+        'helmet',
+        'chestplate',
+        'leggings',
+        'boots',
+        'tridentLoyalty',
+        'tridentRiptide',
+        'fishing_rod',
     ]);
-    init.customCommandRegistry.registerEnum("vertx:SystemCalls", ["run", "runInterval", "runTimeout"]);
-    init.customCommandRegistry.registerEnum("vertx:SystemRunType", ["command", "script"]);
+    init.customCommandRegistry.registerEnum('vertx:SystemCalls', ['run', 'runInterval', 'runTimeout']);
+    init.customCommandRegistry.registerEnum('vertx:SystemRunType', ['command', 'script']);
 
     // Original commands
     const addLoreCommand = {
-        name: "vertx:addlore",
-        description: "add lore to item (saves existing lore).",
+        name: 'vertx:addlore',
+        description: 'add lore to item (saves existing lore).',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Lore string" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Lore string' }],
         optionalParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Targets" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Targets' },
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Add lore to bottom (default true)",
+                name: 'Add lore to bottom (default true)',
             },
         ],
     };
 
     const addBlockCommand = {
-        name: "vertx:addblock",
-        description: "Add block to multiblock",
+        name: 'vertx:addblock',
+        description: 'Add block to multiblock',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.BlockType, name: "Block" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.BlockType, name: 'Block' }],
         optionalParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Targets" },
+            { type: CustomCommandParamType.Integer, name: 'Count (default 1)' },
+            { type: CustomCommandParamType.EntitySelector, name: 'Targets' },
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Add lore to bottom (default true)",
+                name: 'Add lore to bottom (default true)',
             },
         ],
     };
 
     const setLoreCommand = {
-        name: "vertx:setlore",
-        description: "set lore to item (replace existing lore).",
+        name: 'vertx:setlore',
+        description: 'set lore to item (replace existing lore).',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Lore string" }],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Targets" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Lore string' }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Targets' }],
     };
 
     const bindCommandCommand = {
-        name: "vertx:bindcommand",
-        description: "Bind command to item",
+        name: 'vertx:bindcommand',
+        description: 'Bind command to item',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Command" }],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Targets" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Command' }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Targets' }],
     };
     // New commands
     const bindFunctionCommand = {
-        name: "vertx:bindfunction",
-        description: "Bind function to item",
+        name: 'vertx:bindfunction',
+        description: 'Bind function to item',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Function name" }],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Targets" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Function name' }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Targets' }],
     };
 
     const explosionCommand = {
-        name: "vertx:explosion",
-        description: "Create explosion",
+        name: 'vertx:explosion',
+        description: 'Create explosion',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: "Size" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: 'Size' }],
         optionalParameters: [
-            { type: CustomCommandParamType.Location, name: "Location" },
+            { type: CustomCommandParamType.Location, name: 'Location' },
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Break blocks (default true)",
+                name: 'Break blocks (default true)',
             },
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Cause fire (default false)",
+                name: 'Cause fire (default false)',
             },
         ],
     };
 
     const cloneItemCommand = {
-        name: "vertx:cloneitem",
+        name: 'vertx:cloneitem',
         description: "Clone item from one entity's slot to another entity's slot",
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "From Entity" },
-            { type: CustomCommandParamType.Integer, name: "From Slot" },
-            { type: CustomCommandParamType.EntitySelector, name: "To Entity" },
-            { type: CustomCommandParamType.Integer, name: "To Slot" },
+            { type: CustomCommandParamType.EntitySelector, name: 'From Entity' },
+            { type: CustomCommandParamType.Integer, name: 'From Slot' },
+            { type: CustomCommandParamType.EntitySelector, name: 'To Entity' },
+            { type: CustomCommandParamType.Integer, name: 'To Slot' },
         ],
-        optionalParameters: [{ type: CustomCommandParamType.Integer, name: "Amount (default 1)" }],
+        optionalParameters: [{ type: CustomCommandParamType.Integer, name: 'Amount (default 1)' }],
     };
 
     const setItemNameCommand = {
-        name: "vertx:setitemname",
-        description: "Set custom name for held item",
+        name: 'vertx:setitemname',
+        description: 'Set custom name for held item',
         permissionLevel: CommandPermissionLevel.Any,
         mandatoryParameters: [
             {
@@ -158,156 +203,167 @@ system.beforeEvents.startup.subscribe((init) => {
     };
 
     const clearLoreCommand = {
-        name: "vertx:clearlore",
-        description: "Clear lore from item",
+        name: 'vertx:clearlore',
+        description: 'Clear lore from item',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        optionalParameters: [{ type: CustomCommandParamType.Integer, name: "lines of lore" }],
+        optionalParameters: [{ type: CustomCommandParamType.Integer, name: 'lines of lore' }],
     };
 
     const createMultiBlockCommand = {
-        name: "vertx:createmultiblock",
-        description: "Create multi-block item with GUI",
+        name: 'vertx:createmultiblock',
+        description: 'Create multi-block item with GUI',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
+    const createMultiBlockHBCommand = {
+        name: 'vertx:createmultiblockhb',
+        description: 'Create multi-block item from items in hotbar',
+        permissionLevel: CommandPermissionLevel.GameDirectors,
+        optionalParameters: [
+            { type: CustomCommandParamType.Integer, name: 'Start Slot' },
+            { type: CustomCommandParamType.Integer, name: 'End Slot' },
+            { type: CustomCommandParamType.Boolean, name: 'Clear Slots (default true)' },
+        ],
+    };
+
     const multiBlockFillCommand = {
-        name: "vertx:multiblockfill",
-        description: "Fill area with multi-block from mainhand (~18000 blocks/s)",
+        name: 'vertx:multiblockfill',
+        description: 'Fill area with multi-block from mainhand (~18000 blocks/s)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Location, name: "From location" },
-            { type: CustomCommandParamType.Location, name: "To location" },
+            { type: CustomCommandParamType.Location, name: 'From location' },
+            { type: CustomCommandParamType.Location, name: 'To location' },
         ],
     };
 
     const nightVisionCommand = {
-        name: "vertx:nv",
-        description: "Give night vision",
+        name: 'vertx:nv',
+        description: 'Give night vision',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Target" },
-            { type: CustomCommandParamType.Integer, name: "Time in ticks" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target' },
+            { type: CustomCommandParamType.Integer, name: 'Time in ticks' },
         ],
     };
 
     const healCommand = {
-        name: "vertx:heal",
-        description: "Heal player to full health/hunger",
+        name: 'vertx:heal',
+        description: 'Heal player to full health/hunger',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Target" },
-            { type: CustomCommandParamType.Enum, name: "vertx:HealMode" },
-            { type: CustomCommandParamType.Boolean, name: "vertx:PlayerEntity" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target' },
+            { type: CustomCommandParamType.Enum, name: 'vertx:HealMode' },
+            { type: CustomCommandParamType.Boolean, name: 'vertx:PlayerEntity' },
         ],
     };
 
     const setDayCommand = {
-        name: "vertx:setday",
-        description: "Set specific day number",
+        name: 'vertx:setday',
+        description: 'Set specific day number',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: "Day number" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: 'Day number' }],
     };
 
     const spawnEntityCommand = {
-        name: "vertx:spawnentity",
-        description: "Spawn entities with optional equipment and effects",
+        name: 'vertx:spawnentity',
+        description: 'Spawn entities with optional equipment and effects',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.EntityType, name: "EntityType" },
-            { type: CustomCommandParamType.Integer, name: "Amount" },
+            { type: CustomCommandParamType.EntityType, name: 'EntityType' },
+            { type: CustomCommandParamType.Integer, name: 'Amount' },
         ],
         optionalParameters: [
-            { type: CustomCommandParamType.Location, name: "Location" },
+            { type: CustomCommandParamType.Location, name: 'Location' },
             {
                 type: CustomCommandParamType.EntitySelector,
-                name: "Copy equipment from entity",
+                name: 'Copy equipment from entity',
             },
         ],
     };
 
     const godCommand = {
-        name: "vertx:god",
-        description: "Toggle god mode (resistance 5)",
+        name: 'vertx:god',
+        description: 'Toggle god mode (resistance 5)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Target" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target' },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Duration in ticks (default 10 minutes)",
+                name: 'Duration in ticks (default 10 minutes)',
             },
         ],
     };
 
     const burnEntityCommand = {
-        name: "vertx:burnentity",
-        description: "Set entity on fire",
+        name: 'vertx:burnentity',
+        description: 'Set entity on fire',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Target" },
-            { type: CustomCommandParamType.Integer, name: "Duration in seconds" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target' },
+            { type: CustomCommandParamType.Integer, name: 'Duration in seconds' },
         ],
     };
 
     const knockbackCommand = {
-        name: "vertx:knockback",
-        description: "Apply knockback force to entities",
+        name: 'vertx:knockback',
+        description: 'Apply knockback force to entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Target" },
-            { type: CustomCommandParamType.Float, name: "Strength" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target' },
+            { type: CustomCommandParamType.Float, name: 'Strength' },
         ],
         optionalParameters: [
             {
                 type: CustomCommandParamType.Float,
-                name: "Horizontal direction (degrees, default player facing)",
+                name: 'Horizontal direction (degrees, default player facing)',
             },
             {
                 type: CustomCommandParamType.Float,
-                name: "Vertical strength (default 0.5)",
+                name: 'Vertical strength (default 0.5)',
             },
         ],
     };
 
     const durabilityCommand = {
-        name: "vertx:durability",
-        description: "Set item durability percentage",
+        name: 'vertx:durability',
+        description: 'Set item durability percentage',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
             {
                 type: CustomCommandParamType.Integer,
-                name: "Durability percentage (0-100)",
+                name: 'Durability percentage (0-100)',
             },
         ],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target" }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target' }],
     };
 
     const clearAreaCommand = {
-        name: "vertx:cleararea",
-        description: "Clear all entities/items in area",
+        name: 'vertx:cleararea',
+        description: 'Clear all entities/items in area',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: "Radius" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: 'Radius' }],
         optionalParameters: [
-            { type: CustomCommandParamType.Location, name: "Center location" },
+            { type: CustomCommandParamType.Location, name: 'Center location' },
             {
                 type: CustomCommandParamType.String,
-                name: "Entity types to clear (comma separated, default: all)",
+                name: 'Entity types to clear (comma separated, default: all)',
             },
         ],
     };
 
     const createPathCommand = {
-        name: "vertx:createpath",
-        description: "Create path between waypoints with specified radius",
+        name: 'vertx:createpath',
+        description: 'Create path between waypoints with specified radius',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Float, name: "Radius" },
-            { type: CustomCommandParamType.Location, name: "Start location" },
-            { type: CustomCommandParamType.Location, name: "End location" },
+            { type: CustomCommandParamType.Float, name: 'Radius' },
+            { type: CustomCommandParamType.Location, name: 'Start location' },
+            { type: CustomCommandParamType.Location, name: 'End location' },
         ],
         optionalParameters: [
-            { type: CustomCommandParamType.Location, name: "Waypoint 1 (optional)" },
-            { type: CustomCommandParamType.Location, name: "Waypoint 2 (optional)" },
-            { type: CustomCommandParamType.Location, name: "Waypoint 3 (optional)" },
+            { type: CustomCommandParamType.Location, name: 'Waypoint 1 (optional)' },
+            { type: CustomCommandParamType.Location, name: 'Waypoint 2 (optional)' },
+            { type: CustomCommandParamType.Location, name: 'Waypoint 3 (optional)' },
             {
                 type: CustomCommandParamType.String,
                 name: "Replace blocks ('ALL' or comma separated list)",
@@ -320,646 +376,658 @@ system.beforeEvents.startup.subscribe((init) => {
     };
 
     const getSlotItemCommand = {
-        name: "vertx:getslotitem",
-        description: "Get information about item in specific slot",
+        name: 'vertx:getslotitem',
+        description: 'Get information about item in specific slot',
         permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: "Slot number (0-35)" }],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target player" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: 'Slot number (0-35)' }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target player' }],
     };
 
     const findSlotCommand = {
-        name: "vertx:findslot",
-        description: "Find item locations in inventory",
+        name: 'vertx:findslot',
+        description: 'Find item locations in inventory',
         permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Item ID or partial name" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Item ID or partial name' }],
         optionalParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:FindSlotMode" },
-            { type: CustomCommandParamType.EntitySelector, name: "Target player" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:FindSlotMode' },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target player' },
         ],
     };
 
     const getPathToolCommand = {
-        name: "vertx:getpathtool",
-        description: "Get path creation tool (shovel)",
+        name: 'vertx:getpathtool',
+        description: 'Get path creation tool (shovel)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const buildPathCommand = {
-        name: "vertx:buildpath",
-        description: "Build path using path tool data (opens GUI)",
+        name: 'vertx:buildpath',
+        description: 'Build path using path tool data (opens GUI)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const configFillCommand = {
-        name: "vertx:configfill",
-        description: "Configure block filling performance settings",
+        name: 'vertx:configfill',
+        description: 'Configure block filling performance settings',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Integer,
-                name: "Blocks per tick (default 500)",
+                name: 'Blocks per tick (default 500)',
             },
-            { type: CustomCommandParamType.Integer, name: "Tick delay (default 2)" },
+            { type: CustomCommandParamType.Integer, name: 'Tick delay (default 2)' },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Max operations (default 100000)",
+                name: 'Max operations (default 100000)',
             },
         ],
     };
 
     const buildTextCommand = {
-        name: "vertx:buildtext",
-        description: "Build 3D text from blocks with customizable options",
+        name: 'vertx:buildtext',
+        description: 'Build 3D text from blocks with customizable options',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Text to build" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Text to build' }],
         optionalParameters: [
-            { type: CustomCommandParamType.Location, name: "Start location" },
+            { type: CustomCommandParamType.Location, name: 'Start location' },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Scale (1-10, default: 3)",
+                name: 'Scale (1-10, default: 3)',
             },
-            { type: CustomCommandParamType.Enum, name: "vertx:Direction" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:Direction' },
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Vertical text (default: false)",
+                name: 'Vertical text (default: false)',
             },
-            { type: CustomCommandParamType.Enum, name: "vertx:FontStyle" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:FontStyle' },
         ],
     };
 
     const brushCommand = {
-        name: "vertx:brush",
-        description: "Configure and create brush tool",
+        name: 'vertx:brush',
+        description: 'Configure and create brush tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const largeFillCommand = {
-        name: "vertx:largefill",
-        description: "Fill large areas with blocks using async processing (up to 1M blocks)",
+        name: 'vertx:largefill',
+        description: 'Fill large areas with blocks using async processing (up to 1M blocks)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Location, name: "From location" },
-            { type: CustomCommandParamType.Location, name: "To location" },
-            { type: CustomCommandParamType.BlockType, name: "Block" },
+            { type: CustomCommandParamType.Location, name: 'From location' },
+            { type: CustomCommandParamType.Location, name: 'To location' },
+            { type: CustomCommandParamType.BlockType, name: 'Block' },
         ],
         optionalParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:LargeFillMode" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:LargeFillMode' },
             {
                 type: CustomCommandParamType.String,
-                name: "Replace block filter (for replace mode, default: all)",
+                name: 'Replace block filter (for replace mode, default: all)',
             },
         ],
     };
 
     const fillInfoCommand = {
-        name: "vertx:fillinfo",
-        description: "Calculate fill area size and estimated time",
+        name: 'vertx:fillinfo',
+        description: 'Calculate fill area size and estimated time',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Location, name: "From location" },
-            { type: CustomCommandParamType.Location, name: "To location" },
+            { type: CustomCommandParamType.Location, name: 'From location' },
+            { type: CustomCommandParamType.Location, name: 'To location' },
         ],
     };
 
     const createFigureCommand = {
-        name: "vertx:createfigure",
-        description: "Create geometric figures (cube, sphere, cylinder, pyramid) with various options",
+        name: 'vertx:createfigure',
+        description: 'Create geometric figures (cube, sphere, cylinder, pyramid) with various options',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:FigureType" },
-            { type: CustomCommandParamType.Location, name: "Center location" },
-            { type: CustomCommandParamType.BlockType, name: "Block" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:FigureType' },
+            { type: CustomCommandParamType.Location, name: 'Center location' },
+            { type: CustomCommandParamType.BlockType, name: 'Block' },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Size (radius/half-width)",
+                name: 'Size (radius/half-width)',
             },
         ],
         optionalParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:FigureMode" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:FigureMode' },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Rotation in degrees (default: 0)",
+                name: 'Rotation in degrees (default: 0)',
             },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Height (for cylinder/pyramid, default: size)",
+                name: 'Height (for cylinder/pyramid, default: size)',
             },
         ],
     };
 
     const gamemodeCommand = {
-        name: "vertx:gm",
-        description: "Change gamemode (defaults to creative)",
+        name: 'vertx:gm',
+        description: 'Change gamemode (defaults to creative)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:GameMode" },
-            { type: CustomCommandParamType.EntitySelector, name: "Target player(s)" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:GameMode' },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target player(s)' },
         ],
     };
 
     const boostCommand = {
-        name: "vertx:boost",
-        description: "Apply impulse boost to entities",
+        name: 'vertx:boost',
+        description: 'Apply impulse boost to entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.Float, name: "Power (0.1-100.0)" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Float, name: 'Power (0.1-100.0)' }],
         optionalParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:BoostDirection" },
-            { type: CustomCommandParamType.EntitySelector, name: "Target entities" },
-            { type: CustomCommandParamType.Location, name: "Custom direction" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:BoostDirection' },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target entities' },
+            { type: CustomCommandParamType.Location, name: 'Custom direction' },
         ],
     };
 
     const randomCommand = {
-        name: "vertx:random",
-        description: "Random number",
+        name: 'vertx:random',
+        description: 'Random number',
         permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: "Max" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Integer, name: 'Max' }],
         optionalParameters: [
-            { type: CustomCommandParamType.Integer, name: "Min" },
-            { type: CustomCommandParamType.Boolean, name: "FloorResult" },
+            { type: CustomCommandParamType.Integer, name: 'Min' },
+            { type: CustomCommandParamType.Boolean, name: 'FloorResult' },
         ],
     };
 
     const transferLoreCommand = {
-        name: "vertx:tlore",
-        description: "Transfer lore from one item to another",
+        name: 'vertx:tlore',
+        description: 'Transfer lore from one item to another',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "FromEntity" },
-            { type: CustomCommandParamType.Integer, name: "FromSlot" },
-            { type: CustomCommandParamType.EntitySelector, name: "ToEntity" },
-            { type: CustomCommandParamType.Integer, name: "ToSlot" },
+            { type: CustomCommandParamType.EntitySelector, name: 'FromEntity' },
+            { type: CustomCommandParamType.Integer, name: 'FromSlot' },
+            { type: CustomCommandParamType.EntitySelector, name: 'ToEntity' },
+            { type: CustomCommandParamType.Integer, name: 'ToSlot' },
         ],
     };
 
     const removeCommand = {
-        name: "vertx:remove",
-        description: "Remove entities",
+        name: 'vertx:remove',
+        description: 'Remove entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Targets" }],
-        optionalParameters: [{ type: CustomCommandParamType.Boolean, name: "Show removed entities" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Targets' }],
+        optionalParameters: [{ type: CustomCommandParamType.Boolean, name: 'Show removed entities' }],
     };
 
     const surfaceCommand = {
-        name: "vertx:surface",
-        description: "Create surface patterns (circle/square) on terrain",
+        name: 'vertx:surface',
+        description: 'Create surface patterns (circle/square) on terrain',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:SurfaceMode" },
-            { type: CustomCommandParamType.Location, name: "Center" },
-            { type: CustomCommandParamType.Integer, name: "Radius" },
-            { type: CustomCommandParamType.BlockType, name: "Block" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:SurfaceMode' },
+            { type: CustomCommandParamType.Location, name: 'Center' },
+            { type: CustomCommandParamType.Integer, name: 'Radius' },
+            { type: CustomCommandParamType.BlockType, name: 'Block' },
         ],
         optionalParameters: [
-            { type: CustomCommandParamType.Integer, name: "MaxHeight" },
-            { type: CustomCommandParamType.Integer, name: "MinHeight" },
-            { type: CustomCommandParamType.Boolean, name: "ReplaceBelow" },
-            { type: CustomCommandParamType.Boolean, name: "MainhandBlock" },
+            { type: CustomCommandParamType.Integer, name: 'MaxHeight' },
+            { type: CustomCommandParamType.Integer, name: 'MinHeight' },
+            { type: CustomCommandParamType.Boolean, name: 'ReplaceBelow' },
+            { type: CustomCommandParamType.Boolean, name: 'MainhandBlock' },
         ],
     };
 
     const plainCommand = {
-        name: "vertx:plain",
-        description: "Create plains by removing blocks above ground level in specified shapes",
+        name: 'vertx:plain',
+        description: 'Create plains by removing blocks above ground level in specified shapes',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Location, name: "Center position" },
-            { type: CustomCommandParamType.Integer, name: "Radius" },
-            { type: CustomCommandParamType.Enum, name: "vertx:PlainMode" },
+            { type: CustomCommandParamType.Location, name: 'Center position' },
+            { type: CustomCommandParamType.Integer, name: 'Radius' },
+            { type: CustomCommandParamType.Enum, name: 'vertx:PlainMode' },
         ],
         optionalParameters: [
             {
                 type: CustomCommandParamType.Integer,
-                name: "Max height (default: 320)",
+                name: 'Max height (default: 320)',
             },
         ],
     };
 
     const getWorldInfoCommand = {
-        name: "vertx:getworldinfo",
-        description: "Get various world information",
+        name: 'vertx:getworldinfo',
+        description: 'Get various world information',
         permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.Enum, name: "vertx:WorldInfoType" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Enum, name: 'vertx:WorldInfoType' }],
     };
 
     const getVeinToolCommand = {
-        name: "vertx:getveintool",
-        description: "Get vein tool for marking corners and exits",
+        name: 'vertx:getveintool',
+        description: 'Get vein tool for marking corners and exits',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const clearVeinToolCommand = {
-        name: "vertx:clearveintool",
-        description: "Clear all vein tool data (corners and exits)",
+        name: 'vertx:clearveintool',
+        description: 'Clear all vein tool data (corners and exits)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const veinToolInfoCommand = {
-        name: "vertx:veintoolinfo",
-        description: "Show current vein tool information",
+        name: 'vertx:veintoolinfo',
+        description: 'Show current vein tool information',
         permissionLevel: CommandPermissionLevel.Any,
     };
 
     const generateVeinsCommand = {
-        name: "vertx:generateveins",
-        description: "Generate vein system using vein tool data",
+        name: 'vertx:generateveins',
+        description: 'Generate vein system using vein tool data',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const hiddenBlocksCommand = {
-        name: "vertx:hblocks",
-        description: "Open menu with all hidden blocks",
+        name: 'vertx:hblocks',
+        description: 'Open menu with all hidden blocks',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const copyEntityToolCommand = {
-        name: "vertx:copyentitytool",
-        description: "Get tool that allow copy entities",
+        name: 'vertx:copyentitytool',
+        description: 'Get tool that allow copy entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const loadEntityCommand = {
-        name: "vertx:loadentity",
-        description: "Spawn entities with optional equipment and effects",
+        name: 'vertx:loadentity',
+        description: 'Spawn entities with optional equipment and effects',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
-            { type: CustomCommandParamType.Location, name: "Location" },
-            { type: CustomCommandParamType.Integer, name: "Amount" },
-            { type: CustomCommandParamType.String, name: "EntityId" },
+            { type: CustomCommandParamType.Location, name: 'Location' },
+            { type: CustomCommandParamType.Integer, name: 'Amount' },
+            { type: CustomCommandParamType.String, name: 'EntityId' },
         ],
     };
 
     const maxEnchantCommand = {
-        name: "vertx:maxenchant",
-        description: "Apply maximum enchantments to held item",
+        name: 'vertx:maxenchant',
+        description: 'Apply maximum enchantments to held item',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:EnchantVariant" },
-            { type: CustomCommandParamType.EntitySelector, name: "Target player" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:EnchantVariant' },
+            { type: CustomCommandParamType.EntitySelector, name: 'Target player' },
         ],
     };
 
     const mobFightCommand = {
-        name: "vertx:mobfight",
-        description: "Get tool that allow copy entities",
+        name: 'vertx:mobfight',
+        description: 'Get tool that allow copy entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.EntitySelector, name: "Entity" },
-            { type: CustomCommandParamType.EntitySelector, name: "Entity" },
+            { type: CustomCommandParamType.EntitySelector, name: 'Entity' },
+            { type: CustomCommandParamType.EntitySelector, name: 'Entity' },
         ],
     };
 
     const savePositionCommand = {
-        name: "vertx:saveposition",
-        description: "Save current position with a name",
-        permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Location name" }],
+        name: 'vertx:saveposition',
+        description: 'Save current position with a name',
+        permissionLevel: CommandPermissionLevel.GameDirectors,
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Location name' }],
     };
 
     const tpsCommand = {
-        name: "vertx:tps",
-        description: "Teleport to saved position",
-        permissionLevel: CommandPermissionLevel.Any,
+        name: 'vertx:tps',
+        description: 'Teleport to saved position',
+        permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.String,
-                name: "Location name (leave empty for GUI)",
+                name: 'Location name (leave empty for GUI)',
             },
         ],
     };
 
     const tpsgCommand = {
-        name: "vertx:tpsg",
-        description: "Teleport to saved position with GUI",
-        permissionLevel: CommandPermissionLevel.Any,
+        name: 'vertx:tpsg',
+        description: 'Teleport to saved position with GUI',
+        permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const rtpCommand = {
-        name: "vertx:rtp",
-        description: "Random teleport within specified range",
+        name: 'vertx:rtp',
+        description: 'Random teleport within specified range',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Integer,
-                name: "Min distance (default: 100)",
+                name: 'Min distance (default: 100)',
             },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Max distance (default: 2000)",
+                name: 'Max distance (default: 2000)',
             },
         ],
     };
 
     const clearPositionsCommand = {
-        name: "vertx:clearpositions",
-        description: "Clear all saved positions",
+        name: 'vertx:clearpositions',
+        description: 'Clear all saved positions',
         permissionLevel: CommandPermissionLevel.Any,
     };
 
     const helpCommand = {
-        name: "vertx:help",
-        description: "Get list with all commands",
+        name: 'vertx:help',
+        description: 'Get list with all commands',
         permissionLevel: CommandPermissionLevel.Any,
     };
 
     const searchCommand = {
-        name: "vertx:search",
-        description: "Get gui based on search",
+        name: 'vertx:search',
+        description: 'Get gui based on search',
         permissionLevel: CommandPermissionLevel.Any,
-        optionalParameters: [{ type: CustomCommandParamType.String, name: "search query" }],
+        optionalParameters: [{ type: CustomCommandParamType.String, name: 'search query' }],
     };
 
     const throwTagToolCommand = {
-        name: "vertx:throwtagtool",
-        description: "Get throw tag tool for applying tags to entities",
+        name: 'vertx:throwtagtool',
+        description: 'Get throw tag tool for applying tags to entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const tagToolAddCommand = {
-        name: "vertx:tagtooladd",
-        description: "Add tag to throw tag tool",
+        name: 'vertx:tagtooladd',
+        description: 'Add tag to throw tag tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Tag to add" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Tag to add' }],
     };
 
     const tagToolRemoveCommand = {
-        name: "vertx:tagtoolremove",
-        description: "Remove tag from throw tag tool",
+        name: 'vertx:tagtoolremove',
+        description: 'Remove tag from throw tag tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Tag to remove" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Tag to remove' }],
     };
 
     const tagToolClearCommand = {
-        name: "vertx:tagtoolclear",
-        description: "Remove all tags from throw tag tool",
+        name: 'vertx:tagtoolclear',
+        description: 'Remove all tags from throw tag tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const removeTagToolCommand = {
-        name: "vertx:removetagtool",
-        description: "Get remove tag tool for removing tags from entities",
+        name: 'vertx:removetagtool',
+        description: 'Get remove tag tool for removing tags from entities',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const copyPasteToolCommand = {
-        name: "vertx:copypastetool",
-        description: "Get copy paste tool for structure operations",
+        name: 'vertx:copypastetool',
+        description: 'Get copy paste tool for structure operations',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const setposCommand = {
-        name: "vertx:setpos",
-        description: "Set position for copy paste tool",
+        name: 'vertx:setpos',
+        description: 'Set position for copy paste tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Location, name: "Position coordinates" },
-            { type: CustomCommandParamType.Location, name: "Position coordinates" },
+            { type: CustomCommandParamType.Location, name: 'Position coordinates' },
+            { type: CustomCommandParamType.Location, name: 'Position coordinates' },
         ],
     };
 
     const pos1Command = {
-        name: "vertx:pos1",
-        description: "Set position 1 for copy paste tool",
+        name: 'vertx:pos1',
+        description: 'Set position 1 for copy paste tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Location,
-                name: "Position coordinates (default: current)",
+                name: 'Position coordinates (default: current)',
             },
         ],
     };
 
     const pos2Command = {
-        name: "vertx:pos2",
-        description: "Set position 2 for copy paste tool",
+        name: 'vertx:pos2',
+        description: 'Set position 2 for copy paste tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Location,
-                name: "Position coordinates (default: current)",
+                name: 'Position coordinates (default: current)',
             },
         ],
     };
 
     const clearposCommand = {
-        name: "vertx:clearpos",
-        description: "Clear saved positions for copy paste tool",
+        name: 'vertx:clearpos',
+        description: 'Clear saved positions for copy paste tool',
         permissionLevel: CommandPermissionLevel.GameDirectors,
     };
 
     const copyCommand = {
-        name: "vertx:copy",
-        description: "Copy selected area as structure",
+        name: 'vertx:copy',
+        description: 'Copy selected area as structure',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Include entities (default: false)",
+                name: 'Include entities (default: false)',
             },
         ],
     };
 
     const pasteCommand = {
-        name: "vertx:paste",
-        description: "Paste copied structure at location",
+        name: 'vertx:paste',
+        description: 'Paste copied structure at location',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Location,
-                name: "Paste location (default: current)",
+                name: 'Paste location (default: current)',
             },
         ],
     };
 
     const cutCommand = {
-        name: "vertx:cut",
-        description: "Cut selected area (copy + clear original)",
+        name: 'vertx:cut',
+        description: 'Cut selected area (copy + clear original)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Include entities (default: false)",
+                name: 'Include entities (default: false)',
             },
         ],
     };
 
     const moveCommand = {
-        name: "vertx:move",
-        description: "Move selected area to new location",
+        name: 'vertx:move',
+        description: 'Move selected area to new location',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.Location, name: "Move to location" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.Location, name: 'Move to location' }],
         optionalParameters: [
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Include entities (default: false)",
+                name: 'Include entities (default: false)',
             },
         ],
     };
 
     const mathCommand = {
-        name: "vertx:math",
-        description: "Evaluate mathematical expressions (unrestricted - creative mode only)",
+        name: 'vertx:math',
+        description: 'Evaluate mathematical expressions (unrestricted - creative mode only)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Mathematical expression" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Mathematical expression' }],
     };
 
     const mathSafeCommand = {
-        name: "vertx:mathsafe",
-        description: "Evaluate safe mathematical expressions",
+        name: 'vertx:mathsafe',
+        description: 'Evaluate safe mathematical expressions',
         permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Mathematical expression" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Mathematical expression' }],
     };
 
     const mathHelpCommand = {
-        name: "vertx:mathhelp",
-        description: "Show available mathematical functions",
+        name: 'vertx:mathhelp',
+        description: 'Show available mathematical functions',
         permissionLevel: CommandPermissionLevel.Any,
     };
 
     const convertCommand = {
-        name: "vertx:convert",
-        description: "Convert between common units",
+        name: 'vertx:convert',
+        description: 'Convert between common units',
         permissionLevel: CommandPermissionLevel.Any,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Float, name: "Value" },
-            { type: CustomCommandParamType.String, name: "From unit" },
-            { type: CustomCommandParamType.String, name: "To unit" },
+            { type: CustomCommandParamType.Float, name: 'Value' },
+            { type: CustomCommandParamType.String, name: 'From unit' },
+            { type: CustomCommandParamType.String, name: 'To unit' },
         ],
     };
 
     const calcCommand = {
-        name: "vertx:calc",
-        description: "Quick calculator (alias for mathsafe)",
+        name: 'vertx:calc',
+        description: 'Quick calculator (alias for mathsafe)',
         permissionLevel: CommandPermissionLevel.Any,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Mathematical expression" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Mathematical expression' }],
     };
 
     const freezeStatusCommand = {
-        name: "vertx:freezestatus",
-        description: "Check freeze status of players",
+        name: 'vertx:freezestatus',
+        description: 'Check freeze status of players',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         optionalParameters: [
             {
                 type: CustomCommandParamType.EntitySelector,
-                name: "Target player (default: all frozen players)",
+                name: 'Target player (default: all frozen players)',
             },
         ],
     };
 
     const freezeCommand = {
-        name: "vertx:freeze",
-        description: "Freeze player (disable movement and permissions)",
+        name: 'vertx:freeze',
+        description: 'Freeze player (disable movement and permissions)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target player(s)" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target player(s)' }],
         optionalParameters: [
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Show message (default: true)",
+                name: 'Show message (default: true)',
             },
             {
                 type: CustomCommandParamType.String,
-                name: "Custom message (optional)",
+                name: 'Custom message (optional)',
             },
             {
                 type: CustomCommandParamType.Integer,
-                name: "Time in seconds (-1 for infinite, default: 60)",
+                name: 'Time in seconds (-1 for infinite, default: 60)',
             },
         ],
     };
 
     const unfreezeCommand = {
-        name: "vertx:unfreeze",
-        description: "Unfreeze player (restore movement and permissions)",
+        name: 'vertx:unfreeze',
+        description: 'Unfreeze player (restore movement and permissions)',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target player(s)" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target player(s)' }],
         optionalParameters: [
             {
                 type: CustomCommandParamType.Boolean,
-                name: "Show message (default: true)",
+                name: 'Show message (default: true)',
             },
             {
                 type: CustomCommandParamType.String,
-                name: "Custom message (optional)",
+                name: 'Custom message (optional)',
             },
         ],
     };
 
     const replaceLoreLineCommand = {
-        name: "vertx:replaceloreline",
-        description: "Replace lore at specific line index",
+        name: 'vertx:replaceloreline',
+        description: 'Replace lore at specific line index',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Integer, name: "Line index (0-based)" },
-            { type: CustomCommandParamType.String, name: "New lore text" },
+            { type: CustomCommandParamType.Integer, name: 'Line index (0-based)' },
+            { type: CustomCommandParamType.String, name: 'New lore text' },
         ],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target player" }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target player' }],
     };
 
     const replaceLoreLineFindCommand = {
-        name: "vertx:replacelorelinefind",
-        description: "Replace lore line by finding text match",
+        name: 'vertx:replacelorelinefind',
+        description: 'Replace lore line by finding text match',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.String, name: "Text to find in lore" },
-            { type: CustomCommandParamType.String, name: "New lore text" },
+            { type: CustomCommandParamType.String, name: 'Text to find in lore' },
+            { type: CustomCommandParamType.String, name: 'New lore text' },
         ],
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target player" }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target player' }],
     };
 
     const showLoreNumbersCommand = {
-        name: "vertx:showlore",
-        description: "Display item lore with line numbers",
+        name: 'vertx:showlore',
+        description: 'Display item lore with line numbers',
         permissionLevel: CommandPermissionLevel.Any,
-        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: "Target player" }],
+        optionalParameters: [{ type: CustomCommandParamType.EntitySelector, name: 'Target player' }],
     };
 
     const showCommandLogsCommand = {
-        name: "vertx:showcommandlogs",
-        description: "Enable or disable display of command logs",
+        name: 'vertx:showcommandlogs',
+        description: 'Enable or disable display of command logs',
         permissionLevel: CommandPermissionLevel.Any,
-        optionalParameters: [{ type: CustomCommandParamType.Boolean, name: "State" }],
+        optionalParameters: [{ type: CustomCommandParamType.Boolean, name: 'State' }],
     };
 
     const systemCommand = {
-        name: "vertx:system",
-        description: "Allow running script statements",
+        name: 'vertx:system',
+        description: 'Allow running script statements',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.Enum, name: "vertx:SystemCalls" },
-            { type: CustomCommandParamType.Enum, name: "vertx:SystemRunType" },
-            { type: CustomCommandParamType.String, name: "Query" },
+            { type: CustomCommandParamType.Enum, name: 'vertx:SystemCalls' },
+            { type: CustomCommandParamType.Enum, name: 'vertx:SystemRunType' },
+            { type: CustomCommandParamType.String, name: 'Query' },
         ],
         optionalParameters: [
-            { type: CustomCommandParamType.Integer, name: "Delay" },
-            { type: CustomCommandParamType.Integer, name: "Repeat" },
+            { type: CustomCommandParamType.Integer, name: 'Delay' },
+            { type: CustomCommandParamType.Integer, name: 'Repeat' },
         ],
     };
 
     const aliasCreateCommand = {
-        name: "vertx:aliascreate",
-        description: "Create custom command aliases",
+        name: 'vertx:aliascreate',
+        description: 'Create custom command aliases',
         permissionLevel: CommandPermissionLevel.GameDirectors,
         mandatoryParameters: [
-            { type: CustomCommandParamType.String, name: "Alias name" },
-            { type: CustomCommandParamType.String, name: "Command to alias" },
+            { type: CustomCommandParamType.String, name: 'Alias name' },
+            { type: CustomCommandParamType.String, name: 'Command to alias' },
         ],
     };
 
     const aliasDeleteCommand = {
-        name: "vertx:aliasdelete",
-        description: "Delete custom command alias",
+        name: 'vertx:aliasdelete',
+        description: 'Delete custom command alias',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Alias name" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Alias name' }],
     };
 
     const aliasExecuteCommand = {
-        name: "vertx:al",
-        description: "Execute custom command alias",
+        name: 'vertx:al',
+        description: 'Execute custom command alias',
         permissionLevel: CommandPermissionLevel.GameDirectors,
-        mandatoryParameters: [{ type: CustomCommandParamType.String, name: "Alias name" }],
+        mandatoryParameters: [{ type: CustomCommandParamType.String, name: 'Alias name' }],
     };
 
+    const fastEnchantCommand = {
+        name: 'vertx:fastenchant',
+        description: 'Apply multiple enchantments quickly to items in slots',
+        permissionLevel: CommandPermissionLevel.GameDirectors,
+        mandatoryParameters: [
+            { type: CustomCommandParamType.EntitySelector, name: 'Target player' },
+            { type: CustomCommandParamType.String, name: 'Slots' },
+            { type: CustomCommandParamType.String, name: 'Enchantments' },
+        ],
+    };
+    //$new command registeration
     // Register all commands
+    init.customCommandRegistry.registerCommand(fastEnchantCommand, fastEnchantFunction);
     init.customCommandRegistry.registerCommand(addLoreCommand, addLoreFunction);
     init.customCommandRegistry.registerCommand(addBlockCommand, addBlockFunction);
     init.customCommandRegistry.registerCommand(setLoreCommand, setLoreFunction);
@@ -1045,18 +1113,209 @@ system.beforeEvents.startup.subscribe((init) => {
     init.customCommandRegistry.registerCommand(aliasCreateCommand, aliasCreateFunction);
     init.customCommandRegistry.registerCommand(aliasDeleteCommand, aliasDeleteFunction);
     init.customCommandRegistry.registerCommand(aliasExecuteCommand, aliasExecuteFunction);
+    init.customCommandRegistry.registerCommand(createMultiBlockHBCommand, createMultiBlockHBFunction);
 });
+
+function enchantItem(enchants, container, slot, containerType) {
+    console.log('▶ enchantItem called', { enchants, slot, containerType });
+
+    let item;
+    if (containerType == 'container') {
+        item = container.getItem(slot);
+        console.log('  • Fetched item from container:', item);
+    } else if (containerType == 'equipment') {
+        item = container.getEquipment(slot);
+        console.log('  • Fetched equipment item:', item);
+    }
+
+    if (!item) {
+        console.log('  ✖ No item in this slot, skipping');
+        return;
+    }
+
+    let enchantable = item.getComponent('minecraft:enchantable');
+    if (!enchantable) {
+        console.log('  ✖ Item has no enchantable component, skipping');
+        return;
+    }
+
+    for (const enchant of enchants) {
+        console.log('  → Trying to add enchant:', enchant);
+        if (enchantable.canAddEnchantment(enchant)) {
+            enchantable.addEnchantment(enchant);
+            console.log('    ✔ Enchant added');
+        } else {
+            console.log('    ✖ Cannot add enchant');
+        }
+    }
+
+    let newItem = item.clone();
+    console.log('  • Cloned item after enchant:', newItem);
+
+    if (containerType == 'container') {
+        container.setItem(slot, newItem);
+    } else {
+        container.setEquipment(slot, newItem);
+    }
+}
+
+//$broken
+function fastEnchantFunction(origin, targetPlayerSelector, slotsString, enchantmentsString) {
+    console.log('=== fastEnchantFunction START ===');
+    console.log('Players:', targetPlayerSelector);
+    console.log('Slots string:', slotsString);
+    console.log('Enchantments string:', enchantmentsString);
+
+    system.run(() => {
+        let slots = slotsString.split(',').map((slotValue) => {
+            const v = slotValue.trim().toLowerCase();
+            const out = {
+                slotId: v,
+                type: isNaN(parseInt(v)) ? 'namedSlot' : 'numberSlot',
+            };
+            console.log('Parsed slot:', out);
+            return out;
+        });
+
+        for (const player of targetPlayerSelector) {
+            if (player.typeId !== 'minecraft:player') continue;
+
+            console.log('\n=== Processing player:', player.name ?? player.id, '===');
+
+            let numberSlots = [];
+            let namedSlots = [];
+
+            for (let slot of slots) {
+                if (slot.type == 'namedSlot') {
+                    namedSlots.push(slot.slotId);
+                } else {
+                    numberSlots.push(slot.slotId);
+                }
+            }
+
+            console.log('Named slots:', namedSlots);
+            console.log('Number slots:', numberSlots);
+
+            let equippable = player.getComponent('minecraft:equippable');
+            let savedItem = equippable.getEquipment(EquipmentSlot.Mainhand);
+
+            console.log('Saved mainhand:', savedItem);
+
+            const enchantedBook = new ItemStack('minecraft:enchanted_book', 1);
+            equippable.setEquipment(EquipmentSlot.Mainhand, enchantedBook);
+
+            console.log('Mainhand replaced with enchanted book');
+
+            // Parse enchantments
+            let enchantments = enchantmentsString.split(',').map((data) => {
+                console.log('Parsing enchantment:', data);
+
+                const enchantId = data.split(' ')[0].trim();
+                let inputLevel = parseInt(data.split(' ')[1]);
+
+                const maxLevel = ENCHANT_DATA.find((e) => e.id == enchantId)?.level ?? 1;
+
+                let level = Math.max(1, Math.min(isNaN(inputLevel) ? 1 : inputLevel, maxLevel));
+
+                console.log(` → Applying enchant command: ${enchantId} level ${level}`);
+
+                player.runCommand(`enchant @s ${enchantId} ${level}`);
+
+                let ench = equippable.getEquipment(EquipmentSlot.Mainhand).getComponent('minecraft:enchantable').getEnchantments();
+
+                console.log(' → Extracted enchantments:', ench);
+                return ench;
+            });
+
+            equippable.setEquipment(EquipmentSlot.Mainhand, savedItem);
+            console.log('Mainhand restored');
+
+            let container = player.getComponent('minecraft:inventory').container;
+
+            // Apply enchantments to named slots
+            for (const slot of namedSlots) {
+                console.log('Applying named slot:', slot);
+
+                switch (slot) {
+                    case 'all':
+                        console.log(' → Enchanting: all inventory + all equipment');
+                        for (let i = 0; i < 35; i++) enchantItem(enchantments, container, i, 'container');
+                        for (let eslot of EQUIPMENT_SLOTS_NH) enchantItem(enchantments, equippable, eslot, 'equipment');
+                        enchantItem(enchantments, equippable, EquipmentSlot.Offhand, 'equipment');
+                    case 'hotbar':
+                        console.log(' → Enchanting: hotbar');
+                        for (let i = 0; i < 8; i++) enchantItem(enchantments, container, i, 'container');
+                    case 'hand':
+                        console.log(' → Enchanting: mainhand');
+                        enchantItem(enchantments, equippable, EquipmentSlot.Mainhand, 'equipment');
+                    case 'offhand':
+                        console.log(' → Enchanting: offhand');
+                        enchantItem(enchantments, equippable, EquipmentSlot.Offhand, 'equipment');
+                    case 'hands':
+                        console.log(' → Enchanting: both hands');
+                        enchantItem(enchantments, equippable, EquipmentSlot.Mainhand, 'equipment');
+                        enchantItem(enchantments, equippable, EquipmentSlot.Offhand, 'equipment');
+                    case 'armor':
+                        console.log(' → Enchanting: armor slots');
+                        for (let eslot of EQUIPMENT_SLOTS_NH) enchantItem(enchantments, equippable, eslot, 'equipment');
+                    case 'equipment':
+                        console.log(' → Enchanting: all equipment slots');
+                        for (let eslot of EQUIPMENT_SLOTS) enchantItem(enchantments, equippable, eslot, 'equipment');
+                }
+            }
+
+            // Apply enchantments to specific number slots
+            for (const slot of numberSlots) {
+                console.log('Applying number slot:', slot);
+                enchantItem(enchantments, container, parseInt(slot), 'container');
+            }
+        }
+    });
+
+    console.log('=== fastEnchantFunction END ===');
+
+    return { status: CustomCommandStatus.Success };
+}
+
+function createMultiBlockHBFunction(origin, startSlot = 0, endSlot = 8, clearSlots = true) {
+    system.run(() => {
+        if (endSlot > 35) endSlot = 35;
+        if (endSlot < startSlot) {
+            let temp = startSlot;
+            startSlot = endSlot;
+            endSlot = temp;
+        }
+        let player = origin.sourceEntity;
+        if (player.typeId !== 'minecraft:player') return;
+
+        let container = player.getComponent('minecraft:inventory').container;
+        let blocks = [];
+        for (let slot = startSlot; slot <= endSlot; slot++) {
+            let item = container.getItem(slot);
+            if (item && item.typeId && !item.typeId.includes('air')) {
+                blocks.push(item.typeId);
+                if (clearSlots) container.setItem(slot);
+            }
+        }
+        const newItem = new ItemStack(blocks[0], 1);
+        const loreLines = ['§6Multi-Block Item', '§7Blocks:', ...blocks.map((block) => `§8- ${block}`)];
+        newItem.setLore(loreLines);
+        container.addItem(newItem);
+    });
+
+    return { status: CustomCommandStatus.Success };
+}
 
 function aliasExecuteFunction(origin, aliasName) {
     system.run(() => {
-        const commandAliases = world.getDynamicProperty("commandAliases") || "";
-        if (commandAliases != "") {
+        const commandAliases = world.getDynamicProperty('commandAliases') || '';
+        if (commandAliases != '') {
             const aliases = JSON.parse(commandAliases);
             if (aliases[aliasName]) {
-                if (origin.sourceEntity.typeId === "minecraft:player") {
+                if (origin.sourceEntity.typeId === 'minecraft:player') {
                     origin.sourceEntity.runCommand(aliases[aliasName]);
                 } else {
-                    let dimension = world.getDimension("overworld");
+                    let dimension = world.getDimension('overworld');
                     dimension.runCommand(aliases[aliasName]);
                 }
             } else {
@@ -1072,12 +1331,12 @@ function aliasExecuteFunction(origin, aliasName) {
 
 function aliasDeleteFunction(origin, aliasName) {
     system.run(() => {
-        const commandAliases = world.getDynamicProperty("commandAliases") || "";
-        if (commandAliases != "") {
+        const commandAliases = world.getDynamicProperty('commandAliases') || '';
+        if (commandAliases != '') {
             const aliases = JSON.parse(commandAliases);
             if (aliases[aliasName]) {
                 delete aliases[aliasName];
-                world.setDynamicProperty("commandAliases", JSON.stringify(aliases));
+                world.setDynamicProperty('commandAliases', JSON.stringify(aliases));
                 if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" deleted.`);
             } else {
                 if (origin.sourceEntity) origin.sourceEntity.sendMessage(`Alias "${aliasName}" not found.`);
@@ -1093,23 +1352,23 @@ function aliasDeleteFunction(origin, aliasName) {
 function aliasCreateFunction(origin, aliasName, command) {
     system.run(() => {
         if (!/^[a-zA-Z0-9_]+$/.test(aliasName)) {
-            origin.sourceEntity.sendMessage("Invalid alias name. Only alphanumeric characters and underscores are allowed.");
+            origin.sourceEntity.sendMessage('Invalid alias name. Only alphanumeric characters and underscores are allowed.');
             return { status: CustomCommandStatus.Failure };
         }
 
-        const commandAliases = world.getDynamicProperty("commandAliases") || "";
-        if (commandAliases != "") {
+        const commandAliases = world.getDynamicProperty('commandAliases') || '';
+        if (commandAliases != '') {
             const aliases = JSON.parse(commandAliases);
             if (aliases[aliasName]) {
                 origin.sourceEntity.sendMessage(`Alias "${aliasName}" already exists.`);
                 return { status: CustomCommandStatus.Failure };
             }
             aliases[aliasName] = command;
-            world.setDynamicProperty("commandAliases", JSON.stringify(aliases));
+            world.setDynamicProperty('commandAliases', JSON.stringify(aliases));
         } else {
             const aliases = {};
             aliases[aliasName] = command;
-            world.setDynamicProperty("commandAliases", JSON.stringify(aliases));
+            world.setDynamicProperty('commandAliases', JSON.stringify(aliases));
         }
     });
 
@@ -1119,17 +1378,17 @@ function aliasCreateFunction(origin, aliasName, command) {
 function systemFunction(origin, callType, runType, query, delay = 0, repeat = 0) {
     system.run(() => {
         switch (callType) {
-            case "run":
+            case 'run':
                 systemRunFunction(origin, runType, query);
                 break;
-            case "runInterval":
+            case 'runInterval':
                 systemRunIntervalFunction(origin, runType, query, delay, repeat);
                 break;
-            case "runTimeout":
+            case 'runTimeout':
                 systemRunTimeoutFunction(origin, runType, query, delay);
                 break;
             default:
-                origin.sourceEntity.sendMessage("Invalid system call type: " + callType);
+                origin.sourceEntity.sendMessage('Invalid system call type: ' + callType);
         }
     });
 
@@ -1138,25 +1397,25 @@ function systemFunction(origin, callType, runType, query, delay = 0, repeat = 0)
 
 function systemRunFunction(origin, runType, query) {
     switch (runType) {
-        case "command":
-            let dimension = world.getDimension("overworld");
-            if (origin.sourceEntity.typeId === "minecraft:player") {
+        case 'command':
+            let dimension = world.getDimension('overworld');
+            if (origin.sourceEntity.typeId === 'minecraft:player') {
                 dimension = origin.sourceEntity.dimension;
             }
             dimension.runCommand(query);
             break;
-        case "script":
+        case 'script':
             try {
                 system.run(() => {
                     eval(query);
                 });
             } catch (e) {
-                console.log("Error executing script: " + e);
-                origin.sourceEntity.sendMessage("Error executing script: " + e);
+                console.log('Error executing script: ' + e);
+                origin.sourceEntity.sendMessage('Error executing script: ' + e);
             }
             break;
         default:
-            origin.sourceEntity.sendMessage("Invalid run type: " + runType);
+            origin.sourceEntity.sendMessage('Invalid run type: ' + runType);
     }
 }
 
@@ -1179,8 +1438,8 @@ function systemRunTimeoutFunction(origin, runType, query, delay) {
 
 function showCommandLogsFunction(origin, state) {
     system.run(() => {
-        if (state) origin.sourceEntity.removeTag("dontshowcommandlogs");
-        if (!state) origin.sourceEntity.addTag("dontshowcommandlogs");
+        if (state) origin.sourceEntity.removeTag('dontshowcommandlogs');
+        if (!state) origin.sourceEntity.addTag('dontshowcommandlogs');
     });
 
     return { status: CustomCommandStatus.Success };
@@ -1190,7 +1449,7 @@ function addLoreFunction(origin, lore, entities = [origin.sourceEntity], bottom 
     system.run(() => {
         for (const entity of entities) {
             try {
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable.getEquipment(EquipmentSlot.Mainhand);
                 if (!item) continue;
 
@@ -1207,7 +1466,7 @@ function addLoreFunction(origin, lore, entities = [origin.sourceEntity], bottom 
 
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
             } catch (e) {
-                console.log("failed to add lore for " + entity.typeId);
+                console.log('failed to add lore for ' + entity.typeId);
             }
         }
     });
@@ -1221,35 +1480,37 @@ function randomFunction(origin, max, min = 0, floor = true) {
         if (floor) {
             rnum = Math.floor(rnum);
         }
-        if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("Random number: " + rnum);
+        if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('Random number: ' + rnum);
     });
 
     return { status: CustomCommandStatus.Success };
 }
 
-function addBlockFunction(origin, lore, entities = [origin.sourceEntity], bottom = true) {
+function addBlockFunction(origin, lore, count = 1, entities = [origin.sourceEntity], bottom = true) {
     system.run(() => {
         for (const entity of entities) {
-            try {
-                const equippable = entity.getComponent("minecraft:equippable");
-                const item = equippable.getEquipment(EquipmentSlot.Mainhand);
-                if (!item) continue;
+            for (let i = 0; i < count; i++) {
+                try {
+                    const equippable = entity.getComponent('minecraft:equippable');
+                    const item = equippable.getEquipment(EquipmentSlot.Mainhand);
+                    if (!item) continue;
 
-                const oldLore = item.getLore();
-                const newItem = item.clone();
-                const addLore = `§8- ${lore.id}`;
+                    const oldLore = item.getLore();
+                    const newItem = item.clone();
+                    const addLore = `§8- ${lore.id}`;
 
-                if (bottom) {
-                    const newLore = [...oldLore, addLore];
-                    newItem.setLore(newLore);
-                } else {
-                    const newLore = [addLore, ...oldLore];
-                    newItem.setLore(newLore);
+                    if (bottom) {
+                        const newLore = [...oldLore, addLore];
+                        newItem.setLore(newLore);
+                    } else {
+                        const newLore = [addLore, ...oldLore];
+                        newItem.setLore(newLore);
+                    }
+
+                    equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
+                } catch (e) {
+                    console.log('failed to add lore for ' + entity.typeId);
                 }
-
-                equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
-            } catch (e) {
-                console.log("failed to add lore for " + entity.typeId);
             }
         }
     });
@@ -1261,7 +1522,7 @@ function setLoreFunction(origin, lore, entities = [origin.sourceEntity]) {
     system.run(() => {
         for (const entity of entities) {
             try {
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable.getEquipment(EquipmentSlot.Mainhand);
                 if (!item) continue;
 
@@ -1269,7 +1530,7 @@ function setLoreFunction(origin, lore, entities = [origin.sourceEntity]) {
                 newItem.setLore([lore]);
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
             } catch (e) {
-                console.log("failed to set lore for " + entity.typeId);
+                console.log('failed to set lore for ' + entity.typeId);
             }
         }
     });
@@ -1280,7 +1541,7 @@ function setLoreFunction(origin, lore, entities = [origin.sourceEntity]) {
 function clearLoreFunction(origin, lines = 100) {
     system.run(() => {
         const player = origin.sourceEntity;
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
         const item = equippable.getEquipment(EquipmentSlot.Mainhand);
         if (!item) return;
 
@@ -1304,7 +1565,7 @@ function clearLoreFunction(origin, lines = 100) {
 
 function transferLoreFunction(origin, FromEntity, FromSlot, ToEntity, ToSlot) {
     system.run(() => {
-        const fromInventory = FromEntity[0]?.getComponent("minecraft:inventory")?.container;
+        const fromInventory = FromEntity[0]?.getComponent('minecraft:inventory')?.container;
         const fromItem = fromInventory?.getItem(FromSlot);
 
         // If no item or no lore, fail gracefully
@@ -1315,7 +1576,7 @@ function transferLoreFunction(origin, FromEntity, FromSlot, ToEntity, ToSlot) {
         const itemLore = fromItem.getLore();
 
         for (const toEntity of ToEntity) {
-            const toInventory = toEntity?.getComponent("minecraft:inventory")?.container;
+            const toInventory = toEntity?.getComponent('minecraft:inventory')?.container;
             const targetItem = toInventory?.getItem(ToSlot);
 
             // Only update if there’s an item in the target slot
@@ -1334,7 +1595,7 @@ function bindCommandFunction(origin, command, entities = [origin.sourceEntity]) 
     system.run(() => {
         for (const entity of entities) {
             try {
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable.getEquipment(EquipmentSlot.Mainhand);
                 if (!item) continue;
 
@@ -1344,7 +1605,7 @@ function bindCommandFunction(origin, command, entities = [origin.sourceEntity]) 
                 newItem.setLore(newLore);
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
             } catch (e) {
-                console.log("failed to bind command for " + entity.typeId);
+                console.log('failed to bind command for ' + entity.typeId);
             }
         }
     });
@@ -1357,7 +1618,7 @@ function bindFunctionFunction(origin, functionName, entities = [origin.sourceEnt
     system.run(() => {
         for (const entity of entities) {
             try {
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable.getEquipment(EquipmentSlot.Mainhand);
                 if (!item) continue;
 
@@ -1367,7 +1628,7 @@ function bindFunctionFunction(origin, functionName, entities = [origin.sourceEnt
                 newItem.setLore(newLore);
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
             } catch (e) {
-                console.log("failed to bind function for " + entity.typeId);
+                console.log('failed to bind function for ' + entity.typeId);
             }
         }
     });
@@ -1378,7 +1639,7 @@ function bindFunctionFunction(origin, functionName, entities = [origin.sourceEnt
 function explosionFunction(origin, size, location = origin.sourceEntity?.location, breakBlocks = true, causeFire = false) {
     system.run(() => {
         try {
-            const dimension = origin.sourceEntity?.dimension || world.getDimension("overworld");
+            const dimension = origin.sourceEntity?.dimension || world.getDimension('overworld');
             const explosionOptions = {
                 breaksBlocks: breakBlocks,
                 causesFire: causeFire,
@@ -1386,7 +1647,7 @@ function explosionFunction(origin, size, location = origin.sourceEntity?.locatio
 
             dimension.createExplosion(location, size, explosionOptions);
         } catch (e) {
-            console.log("failed to create explosion: " + e);
+            console.log('failed to create explosion: ' + e);
         }
     });
 
@@ -1397,11 +1658,11 @@ function createMultiBlockGUIFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             showCreateMultiBlockGUI(player);
         } catch (e) {
-            console.log("failed to show create multi-block GUI: " + e);
+            console.log('failed to show create multi-block GUI: ' + e);
         }
     });
 
@@ -1411,7 +1672,7 @@ function createMultiBlockGUIFunction(origin) {
 function nightVisionFunction(origin, targets = [origin.sourceEntity], time = 10 * 60 * 20) {
     system.run(() => {
         for (const entity of targets) {
-            entity.addEffect("night_vision", time, {
+            entity.addEffect('night_vision', time, {
                 amplifier: 1,
                 showParticles: false,
             });
@@ -1424,7 +1685,7 @@ function nightVisionFunction(origin, targets = [origin.sourceEntity], time = 10 
 function setItemNameFunction(origin, name) {
     system.run(() => {
         const entity = origin.sourceEntity;
-        const equippable = entity.getComponent("minecraft:equippable");
+        const equippable = entity.getComponent('minecraft:equippable');
         const item = equippable.getEquipment(EquipmentSlot.Mainhand);
         if (!item) return;
 
@@ -1440,20 +1701,20 @@ function cloneItemFunction(origin, fromEntityArr, fromSlot, toEntityArr, toSlot,
     system.run(() => {
         try {
             if (!fromEntityArr.length) {
-                if (!world.hasTag("dontshowcommandlogs")) world.sendMessage("§cError: No source entity provided.");
+                if (!world.hasTag('dontshowcommandlogs')) world.sendMessage('§cError: No source entity provided.');
                 return;
             }
 
             const fromEntity = fromEntityArr[0];
-            const fromInventory = fromEntity.getComponent("minecraft:inventory")?.container;
+            const fromInventory = fromEntity.getComponent('minecraft:inventory')?.container;
             if (!fromInventory) {
-                if (!fromEntity.hasTag("dontshowcommandlogs")) fromEntity.sendMessage("§cError: Source entity has no inventory.");
+                if (!fromEntity.hasTag('dontshowcommandlogs')) fromEntity.sendMessage('§cError: Source entity has no inventory.');
                 return;
             }
 
             const sourceItem = fromInventory.getItem(fromSlot);
             if (!sourceItem) {
-                if (!fromEntity.hasTag("dontshowcommandlogs")) fromEntity.sendMessage("§cError: No item in source slot.");
+                if (!fromEntity.hasTag('dontshowcommandlogs')) fromEntity.sendMessage('§cError: No item in source slot.');
                 return;
             }
 
@@ -1462,18 +1723,18 @@ function cloneItemFunction(origin, fromEntityArr, fromSlot, toEntityArr, toSlot,
 
             // Give to each target entity
             for (const target of toEntityArr) {
-                const toInventory = target.getComponent("minecraft:inventory")?.container;
+                const toInventory = target.getComponent('minecraft:inventory')?.container;
                 if (!toInventory) {
-                    if (!target.hasTag("dontshowcommandlogs")) target.sendMessage("§cError: Target has no inventory.");
+                    if (!target.hasTag('dontshowcommandlogs')) target.sendMessage('§cError: Target has no inventory.');
                     continue;
                 }
                 toInventory.setItem(toSlot, clonedItem);
-                if (!target.hasTag("dontshowcommandlogs")) target.sendMessage(`§aReceived '${sourceItem.typeId}' x${amount} in slot ${toSlot}.`);
+                if (!target.hasTag('dontshowcommandlogs')) target.sendMessage(`§aReceived '${sourceItem.typeId}' x${amount} in slot ${toSlot}.`);
             }
 
-            if (!fromEntity.hasTag("dontshowcommandlogs")) fromEntity.sendMessage(`§aCloned item '${sourceItem.typeId}' x${amount} to ${toEntityArr.length} entities.`);
+            if (!fromEntity.hasTag('dontshowcommandlogs')) fromEntity.sendMessage(`§aCloned item '${sourceItem.typeId}' x${amount} to ${toEntityArr.length} entities.`);
         } catch (e) {
-            if (!world.hasTag("dontshowcommandlogs")) world.sendMessage(`§cCloneItemFunction Error: ${e}`);
+            if (!world.hasTag('dontshowcommandlogs')) world.sendMessage(`§cCloneItemFunction Error: ${e}`);
         }
     });
 
@@ -1482,10 +1743,10 @@ function cloneItemFunction(origin, fromEntityArr, fromSlot, toEntityArr, toSlot,
 
 function showCreateMultiBlockGUI(player) {
     const form = new ModalFormData()
-        .title("§aCreate Multi-Block")
-        .textField("Block ID (e.g., minecraft:stone):", "minecraft:stone")
-        .textField("Item Name:", "Multi-Block")
-        .textField("Block List (comma separated):", "minecraft:stone,minecraft:cobblestone,minecraft:granite");
+        .title('§aCreate Multi-Block')
+        .textField('Block ID (e.g., minecraft:stone):', 'minecraft:stone')
+        .textField('Item Name:', 'Multi-Block')
+        .textField('Block List (comma separated):', 'minecraft:stone,minecraft:cobblestone,minecraft:granite');
 
     form.show(player).then((response) => {
         if (response.canceled) return;
@@ -1493,33 +1754,33 @@ function showCreateMultiBlockGUI(player) {
         const [blockId, name, blockList] = response.formValues;
 
         if (!blockId || !name || !blockList) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cAll fields are required!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cAll fields are required!');
             return;
         }
 
         try {
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
 
             // Create new item with proper constructor
             const newItem = new ItemStack(blockId, 1);
             newItem.nameTag = name;
 
             // Create visible lore with block list
-            const blocks = blockList.split(",").map((block) => block.trim());
-            const loreLines = ["§6Multi-Block Item", "§7Blocks:", ...blocks.map((block) => `§8- ${block}`)];
+            const blocks = blockList.split(',').map((block) => block.trim());
+            const loreLines = ['§6Multi-Block Item', '§7Blocks:', ...blocks.map((block) => `§8- ${block}`)];
             newItem.setLore(loreLines);
 
             equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aMulti-block item created!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aMulti-block item created!');
         } catch (e) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to create multi-block: " + e);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to create multi-block: ' + e);
         }
     });
 }
 
 // Event Handlers
 world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.source.typeId !== "minecraft:player" || !ev.itemStack) return;
+    if (ev.source.typeId !== 'minecraft:player' || !ev.itemStack) return;
 
     const player = ev.source;
     const itemStack = ev.itemStack;
@@ -1548,28 +1809,28 @@ world.afterEvents.itemUse.subscribe((ev) => {
         try {
             player.runCommand(command);
         } catch (e) {
-            console.log("command error: " + e);
-            console.log(command + " §c[FAILED]");
+            console.log('command error: ' + e);
+            console.log(command + ' §c[FAILED]');
         }
     }
 
     // Execute functions
     for (const functionName of functions) {
         try {
-            player.runCommand("function " + functionName);
+            player.runCommand('function ' + functionName);
         } catch (e) {
-            console.log("function error: " + e);
-            console.log("function " + functionName + " §c[FAILED]");
+            console.log('function error: ' + e);
+            console.log('function ' + functionName + ' §c[FAILED]');
         }
     }
 });
 
 // FIXED: world.afterEvents.blockPlace.subscribe - Complete implementation for multi-block placement
 world.afterEvents.playerPlaceBlock.subscribe((ev) => {
-    if (ev.player.typeId !== "minecraft:player") return;
+    if (ev.player.typeId !== 'minecraft:player') return;
 
     const player = ev.player;
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const item = equippable.getEquipment(EquipmentSlot.Mainhand);
 
     if (!item) return;
@@ -1583,15 +1844,15 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
     let foundBlocksSection = false;
 
     for (const lore of loreArray) {
-        if (lore === "§6Multi-Block Item") {
+        if (lore === '§6Multi-Block Item') {
             isMultiBlock = true;
         }
-        if (lore === "§7Blocks:") {
+        if (lore === '§7Blocks:') {
             foundBlocksSection = true;
             continue;
         }
-        if (foundBlocksSection && lore.startsWith("§8- ")) {
-            const blockId = lore.replace("§8- ", "");
+        if (foundBlocksSection && lore.startsWith('§8- ')) {
+            const blockId = lore.replace('§8- ', '');
             blockList.push(blockId);
         }
     }
@@ -1608,25 +1869,25 @@ world.afterEvents.playerPlaceBlock.subscribe((ev) => {
     }
 });
 
-function healFunction(origin, targets = [origin.sourceEntity], healType = "both", playerEntity = false) {
+function healFunction(origin, targets = [origin.sourceEntity], healType = 'both', playerEntity = false) {
     system.run(() => {
         for (const entity of targets) {
             try {
-                const health = entity.getComponent("minecraft:health");
+                const health = entity.getComponent('minecraft:health');
 
-                if (healType === "health" || healType === "both") {
+                if (healType === 'health' || healType === 'both') {
                     if (health) {
                         health.setCurrentValue(health.effectiveMax);
                     }
                 }
 
-                if (healType === "hunger" || healType === "both") {
-                    entity.addEffect("saturation", 30, { amplifier: 200 });
+                if (healType === 'hunger' || healType === 'both') {
+                    entity.addEffect('saturation', 30, { amplifier: 200 });
                 }
 
-                if (playerEntity) if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§aYou have been healed!");
+                if (playerEntity) if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§aYou have been healed!');
             } catch (e) {
-                console.log("failed to heal " + entity.typeId + ": " + e);
+                console.log('failed to heal ' + entity.typeId + ': ' + e);
             }
         }
     });
@@ -1637,15 +1898,15 @@ function healFunction(origin, targets = [origin.sourceEntity], healType = "both"
 function setDayFunction(origin, dayNumber) {
     system.run(() => {
         try {
-            const dimension = origin.sourceEntity?.dimension || world.getDimension("overworld");
+            const dimension = origin.sourceEntity?.dimension || world.getDimension('overworld');
             const targetTime = (dayNumber - 1) * 24000 + 1000; // Day starts at 1000 ticks
             dimension.runCommand(`time set ${targetTime}`);
 
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§aSet to day ${dayNumber}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§aSet to day ${dayNumber}`);
             }
         } catch (e) {
-            console.log("failed to set day: " + e);
+            console.log('failed to set day: ' + e);
         }
     });
 
@@ -1655,7 +1916,7 @@ function setDayFunction(origin, dayNumber) {
 function spawnEntityFunction(origin, entityType, amount, location = origin.sourceEntity?.location, copyFrom = null) {
     system.run(() => {
         try {
-            const dimension = origin.sourceEntity?.dimension || world.getDimension("overworld");
+            const dimension = origin.sourceEntity?.dimension || world.getDimension('overworld');
             const spawnedEntities = [];
 
             // Spawn entities
@@ -1671,17 +1932,17 @@ function spawnEntityFunction(origin, entityType, amount, location = origin.sourc
                 // Check if source entity exists and is valid
                 if (!sourceEntity || !sourceEntity.isValid) {
                     if (origin.sourceEntity) {
-                        if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cSource entity is invalid or doesn't exist!");
+                        if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage("§cSource entity is invalid or doesn't exist!");
                     }
-                    console.log("Copy equipment failed: source entity invalid");
+                    console.log('Copy equipment failed: source entity invalid');
                 } else {
                     // Try both equippable and inventory components from source
-                    const sourceEquippable = sourceEntity.getComponent("minecraft:equippable");
-                    const sourceInventory = sourceEntity.getComponent("minecraft:inventory");
+                    const sourceEquippable = sourceEntity.getComponent('minecraft:equippable');
+                    const sourceInventory = sourceEntity.getComponent('minecraft:inventory');
 
                     if (!sourceEquippable && !sourceInventory) {
                         if (origin.sourceEntity) {
-                            if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§eSource entity (${sourceEntity.typeId}) has no equipment or inventory to copy.`);
+                            if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§eSource entity (${sourceEntity.typeId}) has no equipment or inventory to copy.`);
                         }
                         console.log(`Copy equipment skipped: ${sourceEntity.typeId} has no equippable or inventory component`);
                     } else {
@@ -1690,7 +1951,7 @@ function spawnEntityFunction(origin, entityType, amount, location = origin.sourc
 
                         for (const entity of spawnedEntities) {
                             if (!entity || !entity.isValid) {
-                                console.log("Skipping invalid spawned entity");
+                                console.log('Skipping invalid spawned entity');
                                 continue;
                             }
 
@@ -1698,7 +1959,7 @@ function spawnEntityFunction(origin, entityType, amount, location = origin.sourc
                             let entityCopies = 0;
 
                             // Try to copy equipment first (for equipped items)
-                            const targetEquippable = entity.getComponent("minecraft:equippable");
+                            const targetEquippable = entity.getComponent('minecraft:equippable');
                             if (sourceEquippable && targetEquippable) {
                                 for (const slot of Object.values(EquipmentSlot)) {
                                     try {
@@ -1714,7 +1975,7 @@ function spawnEntityFunction(origin, entityType, amount, location = origin.sourc
                             }
 
                             // Try to copy to inventory (for mobs with inventory)
-                            const targetInventory = entity.getComponent("minecraft:inventory");
+                            const targetInventory = entity.getComponent('minecraft:inventory');
                             if (sourceInventory && targetInventory) {
                                 const sourceContainer = sourceInventory.container;
                                 const targetContainer = targetInventory.container;
@@ -1752,13 +2013,13 @@ function spawnEntityFunction(origin, entityType, amount, location = origin.sourc
 
                         if (origin.sourceEntity) {
                             if (totalSuccessfulCopies > 0) {
-                                if (!origin.sourceEntity.hasTag("dontshowcommandlogs"))
+                                if (!origin.sourceEntity.hasTag('dontshowcommandlogs'))
                                     origin.sourceEntity.sendMessage(`§aSuccessfully copied ${totalSuccessfulCopies} items to ${entitiesProcessed} entities!`);
                             } else if (entitiesProcessed > 0) {
-                                if (!origin.sourceEntity.hasTag("dontshowcommandlogs"))
+                                if (!origin.sourceEntity.hasTag('dontshowcommandlogs'))
                                     origin.sourceEntity.sendMessage(`§eNo items could be copied. Entities may not support equipment/inventory or source has no items.`);
                             } else {
-                                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cNo valid entities to copy items to.`);
+                                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cNo valid entities to copy items to.`);
                             }
                         }
                     }
@@ -1766,12 +2027,12 @@ function spawnEntityFunction(origin, entityType, amount, location = origin.sourc
             }
 
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§aSpawned ${spawnedEntities.length} ${entityType.id ?? entityType} entities`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§aSpawned ${spawnedEntities.length} ${entityType.id ?? entityType} entities`);
             }
         } catch (e) {
-            console.log("failed to spawn entity: " + e);
+            console.log('failed to spawn entity: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to spawn entities: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to spawn entities: ${e.message || e}`);
             }
         }
     });
@@ -1784,20 +2045,20 @@ function godFunction(origin, targets = [origin.sourceEntity], duration = 12000) 
         for (const entity of targets) {
             try {
                 // Check if entity already has resistance 5
-                const hasGodMode = entity.getEffect("resistance")?.amplifier >= 4;
+                const hasGodMode = entity.getEffect('resistance')?.amplifier >= 4;
 
                 if (hasGodMode) {
-                    entity.removeEffect("resistance");
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cGod mode disabled");
+                    entity.removeEffect('resistance');
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cGod mode disabled');
                 } else {
-                    entity.addEffect("resistance", duration, {
+                    entity.addEffect('resistance', duration, {
                         amplifier: 4,
                         showParticles: false,
                     });
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§aGod mode enabled");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§aGod mode enabled');
                 }
             } catch (e) {
-                console.log("failed to toggle god mode for " + entity.typeId + ": " + e);
+                console.log('failed to toggle god mode for ' + entity.typeId + ': ' + e);
             }
         }
     });
@@ -1811,10 +2072,10 @@ function burnEntityFunction(origin, targets, duration) {
             try {
                 entity.setOnFire(duration, true);
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§aSet ${entity.typeId} on fire for ${duration} seconds`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§aSet ${entity.typeId} on fire for ${duration} seconds`);
                 }
             } catch (e) {
-                console.log("failed to burn entity " + entity.typeId + ": " + e);
+                console.log('failed to burn entity ' + entity.typeId + ': ' + e);
             }
         }
     });
@@ -1848,11 +2109,11 @@ function knockbackFunction(origin, targets, strength, direction = null, vertical
                 entity.applyKnockback({ x: velocityX, z: velocityZ }, strength);
 
                 if (sourceEntity) {
-                    if (!sourceEntity.hasTag("dontshowcommandlogs")) sourceEntity.sendMessage(`§aApplied knockback to ${entity.typeId}`);
+                    if (!sourceEntity.hasTag('dontshowcommandlogs')) sourceEntity.sendMessage(`§aApplied knockback to ${entity.typeId}`);
                 }
             }
         } catch (e) {
-            console.log("failed to apply knockback: " + e);
+            console.log('failed to apply knockback: ' + e);
         }
     });
 
@@ -1863,7 +2124,7 @@ function durabilityFunction(origin, percentage, targets = [origin.sourceEntity])
     system.run(() => {
         if (percentage < 0 || percentage > 100) {
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cDurability percentage must be between 0-100!");
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cDurability percentage must be between 0-100!');
             }
             return;
         }
@@ -1872,15 +2133,15 @@ function durabilityFunction(origin, percentage, targets = [origin.sourceEntity])
 
         for (const entity of targets) {
             try {
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 if (!equippable) continue;
 
                 const item = equippable.getEquipment(EquipmentSlot.Mainhand);
                 if (!item) continue;
 
-                const durability = item.getComponent("minecraft:durability");
+                const durability = item.getComponent('minecraft:durability');
                 if (!durability) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cItem is not damageable!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cItem is not damageable!');
                     continue;
                 }
 
@@ -1889,36 +2150,36 @@ function durabilityFunction(origin, percentage, targets = [origin.sourceEntity])
                 const damage = maxDurability - newDurability;
 
                 const newItem = item.clone();
-                const newDurabilityComponent = newItem.getComponent("minecraft:durability");
+                const newDurabilityComponent = newItem.getComponent('minecraft:durability');
                 newDurabilityComponent.damage = Math.max(0, Math.min(damage, maxDurability - 1));
 
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§aSet item durability to ${percentage}%`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§aSet item durability to ${percentage}%`);
                 itemsModified++;
             } catch (e) {
-                console.log("failed to set durability for " + entity.typeId + ": " + e);
+                console.log('failed to set durability for ' + entity.typeId + ': ' + e);
             }
         }
 
         if (origin.sourceEntity && itemsModified > 0) {
-            if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§aModified durability for ${itemsModified} items`);
+            if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§aModified durability for ${itemsModified} items`);
         }
     });
 
     return { status: CustomCommandStatus.Success };
 }
 
-function clearAreaFunction(origin, radius, location = origin.sourceEntity?.location, entityTypes = "") {
+function clearAreaFunction(origin, radius, location = origin.sourceEntity?.location, entityTypes = '') {
     system.run(() => {
         try {
             if (!location) {
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cNo location specified and no source entity!");
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cNo location specified and no source entity!');
                 }
                 return;
             }
 
-            const dimension = origin.sourceEntity?.dimension || world.getDimension("overworld");
+            const dimension = origin.sourceEntity?.dimension || world.getDimension('overworld');
 
             // Get all entities in the area
             const entities = dimension.getEntities({
@@ -1930,13 +2191,13 @@ function clearAreaFunction(origin, radius, location = origin.sourceEntity?.locat
             let skippedPlayers = 0;
 
             // Parse entity types to clear (if specified)
-            const typesToClear = entityTypes && entityTypes.trim() !== "" ? entityTypes.split(",").map((type) => type.trim().toLowerCase()) : [];
+            const typesToClear = entityTypes && entityTypes.trim() !== '' ? entityTypes.split(',').map((type) => type.trim().toLowerCase()) : [];
 
             for (const entity of entities) {
                 try {
                     // Never remove players unless explicitly specified
-                    if (entity.typeId === "minecraft:player") {
-                        if (typesToClear.length === 0 || !typesToClear.includes("minecraft:player")) {
+                    if (entity.typeId === 'minecraft:player') {
+                        if (typesToClear.length === 0 || !typesToClear.includes('minecraft:player')) {
                             skippedPlayers++;
                             continue;
                         }
@@ -1949,7 +2210,7 @@ function clearAreaFunction(origin, radius, location = origin.sourceEntity?.locat
 
                     // Check if we should remove this entity type
                     if (typesToClear.length > 0) {
-                        const shouldRemove = typesToClear.some((type) => entity.typeId.toLowerCase().includes(type) || type === "all");
+                        const shouldRemove = typesToClear.some((type) => entity.typeId.toLowerCase().includes(type) || type === 'all');
                         if (!shouldRemove) continue;
                     }
 
@@ -1965,16 +2226,16 @@ function clearAreaFunction(origin, radius, location = origin.sourceEntity?.locat
                 if (skippedPlayers > 0) {
                     message += ` (skipped ${skippedPlayers} players)`;
                 }
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(message);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(message);
 
                 if (typesToClear.length > 0) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§7Filtered by: ${entityTypes}`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§7Filtered by: ${entityTypes}`);
                 }
             }
         } catch (e) {
-            console.log("failed to clear area: " + e);
+            console.log('failed to clear area: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to clear area: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to clear area: ${e.message || e}`);
             }
         }
     });
@@ -1982,7 +2243,7 @@ function clearAreaFunction(origin, radius, location = origin.sourceEntity?.locat
     return { status: CustomCommandStatus.Success };
 }
 
-function createPathFunction(origin, radius, startLoc, endLoc, waypoint1 = null, waypoint2 = null, waypoint3 = null, replaceBlocks = "ALL", pathBlock = "MAINHAND") {
+function createPathFunction(origin, radius, startLoc, endLoc, waypoint1 = null, waypoint2 = null, waypoint3 = null, replaceBlocks = 'ALL', pathBlock = 'MAINHAND') {
     system.run(() => {
         try {
             const entity = origin.sourceEntity;
@@ -2001,49 +2262,49 @@ function createPathFunction(origin, radius, startLoc, endLoc, waypoint1 = null, 
             let pathBlocks = [];
             let isMultiBlock = false;
 
-            if (pathBlock === "MAINHAND" || pathBlock === "") {
-                const equippable = entity.getComponent("minecraft:equippable");
+            if (pathBlock === 'MAINHAND' || pathBlock === '') {
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
                 if (!item) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo item in mainhand! Specify a block type or hold a block.");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo item in mainhand! Specify a block type or hold a block.');
                     return;
                 }
 
                 // Check if it's a multiblock item
                 const loreArray = item.getLore();
-                if (loreArray && loreArray.some((lore) => lore === "§6Multi-Block Item")) {
+                if (loreArray && loreArray.some((lore) => lore === '§6Multi-Block Item')) {
                     isMultiBlock = true;
                     let foundBlocksSection = false;
 
                     for (const lore of loreArray) {
-                        if (lore === "§7Blocks:") {
+                        if (lore === '§7Blocks:') {
                             foundBlocksSection = true;
                             continue;
                         }
-                        if (foundBlocksSection && lore.startsWith("§8- ")) {
-                            const blockId = lore.replace("§8- ", "");
+                        if (foundBlocksSection && lore.startsWith('§8- ')) {
+                            const blockId = lore.replace('§8- ', '');
                             pathBlocks.push(blockId);
                         }
                     }
 
                     if (pathBlocks.length === 0) {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cMulti-block item has no valid blocks!");
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cMulti-block item has no valid blocks!');
                         return;
                     }
                 } else {
                     pathBlocks = [item.typeId];
                 }
-            } else if (pathBlock === "MULTIBLOCK") {
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cMULTIBLOCK option requires holding a multi-block item!");
+            } else if (pathBlock === 'MULTIBLOCK') {
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cMULTIBLOCK option requires holding a multi-block item!');
                 return;
             } else {
                 pathBlocks = [pathBlock];
             }
 
             // Parse replace blocks
-            const shouldReplaceAll = replaceBlocks === "ALL";
-            const replaceList = shouldReplaceAll ? [] : replaceBlocks.split(",").map((block) => block.trim());
+            const shouldReplaceAll = replaceBlocks === 'ALL';
+            const replaceList = shouldReplaceAll ? [] : replaceBlocks.split(',').map((block) => block.trim());
 
             let totalBlocksPlaced = 0;
 
@@ -2056,14 +2317,14 @@ function createPathFunction(origin, radius, startLoc, endLoc, waypoint1 = null, 
                 totalBlocksPlaced += blocksPlaced;
             }
 
-            if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§aPath created with ${totalBlocksPlaced} blocks!`);
+            if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§aPath created with ${totalBlocksPlaced} blocks!`);
             if (isMultiBlock) {
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Used ${pathBlocks.length} different block types randomly`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Used ${pathBlocks.length} different block types randomly`);
             }
         } catch (e) {
-            console.log("failed to create path: " + e);
+            console.log('failed to create path: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create path: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create path: ${e.message || e}`);
             }
         }
     });
@@ -2125,15 +2386,15 @@ function createPathSegment(dimension, from, to, radius, pathBlocks, isMultiBlock
     return blocksPlaced;
 }
 
-function findSlotFunction(origin, itemQuery, mode = "first", targets = [origin.sourceEntity]) {
+function findSlotFunction(origin, itemQuery, mode = 'first', targets = [origin.sourceEntity]) {
     system.run(() => {
         try {
-            const searchAll = mode.toLowerCase() === "all";
+            const searchAll = mode.toLowerCase() === 'all';
 
             for (const entity of targets) {
-                if (!entity || entity.typeId !== "minecraft:player") {
+                if (!entity || entity.typeId !== 'minecraft:player') {
                     if (origin.sourceEntity) {
-                        if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cTarget must be a player!");
+                        if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cTarget must be a player!');
                     }
                     continue;
                 }
@@ -2141,49 +2402,49 @@ function findSlotFunction(origin, itemQuery, mode = "first", targets = [origin.s
                 const results = findItemSlots(entity, itemQuery, searchAll);
 
                 if (results.totalFound === 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§cItem "${itemQuery}" not found in inventory!`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§cItem "${itemQuery}" not found in inventory!`);
                     continue;
                 }
 
                 // Show results
-                const playerName = targets.length > 1 ? `${entity.name}'s ` : "";
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§a--- ${playerName}Item Search Results ---`);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Query: "${itemQuery}" | Mode: ${searchAll ? "All" : "First"}`);
+                const playerName = targets.length > 1 ? `${entity.name}'s ` : '';
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§a--- ${playerName}Item Search Results ---`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Query: "${itemQuery}" | Mode: ${searchAll ? 'All' : 'First'}`);
 
                 // Show inventory slots
                 if (results.inventory.length > 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§eInventory:`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§eInventory:`);
                     for (const slot of results.inventory) {
-                        const stackInfo = slot.amount > 1 ? ` §7(x${slot.amount})` : "";
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`  §b${slot.slot}§7: §f${slot.displayName}${stackInfo}`);
+                        const stackInfo = slot.amount > 1 ? ` §7(x${slot.amount})` : '';
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`  §b${slot.slot}§7: §f${slot.displayName}${stackInfo}`);
                     }
                 }
 
                 // Show equipment slots
                 if (results.equipment.length > 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§e⚔Equipment:`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§e⚔Equipment:`);
                     for (const slot of results.equipment) {
-                        const stackInfo = slot.amount > 1 ? ` §7(x${slot.amount})` : "";
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`  §b${slot.slotName}§7: §f${slot.displayName}${stackInfo}`);
+                        const stackInfo = slot.amount > 1 ? ` §7(x${slot.amount})` : '';
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`  §b${slot.slotName}§7: §f${slot.displayName}${stackInfo}`);
                     }
                 }
 
                 // Show summary
-                if (!entity.hasTag("dontshowcommandlogs"))
+                if (!entity.hasTag('dontshowcommandlogs'))
                     entity.sendMessage(
-                        `§aTotal: ${results.totalFound} item${results.totalFound > 1 ? "s" : ""} found${results.totalAmount > results.totalFound ? ` (${results.totalAmount} total count)` : ""}`
+                        `§aTotal: ${results.totalFound} item${results.totalFound > 1 ? 's' : ''} found${results.totalAmount > results.totalFound ? ` (${results.totalAmount} total count)` : ''}`,
                     );
 
                 // Show quick commands if applicable
                 if (results.inventory.length > 0) {
                     const firstSlot = results.inventory[0];
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Quick: Use slot ${firstSlot.slot} with /replaceitem entity @s slot.hotbar ${firstSlot.slot}`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Quick: Use slot ${firstSlot.slot} with /replaceitem entity @s slot.hotbar ${firstSlot.slot}`);
                 }
             }
         } catch (e) {
-            console.log("failed to find slot: " + e);
+            console.log('failed to find slot: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to search inventory: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to search inventory: ${e.message || e}`);
             }
         }
     });
@@ -2203,7 +2464,7 @@ function findItemSlots(player, itemQuery, searchAll) {
     const query = itemQuery.toLowerCase();
 
     // Search inventory
-    const inventory = player.getComponent("minecraft:inventory");
+    const inventory = player.getComponent('minecraft:inventory');
     if (inventory && inventory.container) {
         const container = inventory.container;
 
@@ -2243,15 +2504,15 @@ function findItemSlots(player, itemQuery, searchAll) {
 
     // Search equipment slots (if searching all or no inventory matches found)
     if (searchAll || results.inventory.length === 0) {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
         if (equippable) {
             const equipmentSlots = [
-                { slot: EquipmentSlot.Head, name: "Head" },
-                { slot: EquipmentSlot.Chest, name: "Chest" },
-                { slot: EquipmentSlot.Legs, name: "Legs" },
-                { slot: EquipmentSlot.Feet, name: "Feet" },
-                { slot: EquipmentSlot.Mainhand, name: "Mainhand" },
-                { slot: EquipmentSlot.Offhand, name: "Offhand" },
+                { slot: EquipmentSlot.Head, name: 'Head' },
+                { slot: EquipmentSlot.Chest, name: 'Chest' },
+                { slot: EquipmentSlot.Legs, name: 'Legs' },
+                { slot: EquipmentSlot.Feet, name: 'Feet' },
+                { slot: EquipmentSlot.Mainhand, name: 'Mainhand' },
+                { slot: EquipmentSlot.Offhand, name: 'Offhand' },
             ];
 
             for (const equipSlot of equipmentSlots) {
@@ -2298,56 +2559,56 @@ function getSlotItemFunction(origin, slotNumber, targets = [origin.sourceEntity]
         try {
             if (slotNumber < 0 || slotNumber > 35) {
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cSlot number must be between 0-35!");
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cSlot number must be between 0-35!');
                 }
                 return;
             }
 
             for (const entity of targets) {
-                if (!entity || entity.typeId !== "minecraft:player") {
+                if (!entity || entity.typeId !== 'minecraft:player') {
                     if (origin.sourceEntity) {
-                        if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cTarget must be a player!");
+                        if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cTarget must be a player!');
                     }
                     continue;
                 }
 
-                const inventory = entity.getComponent("minecraft:inventory");
+                const inventory = entity.getComponent('minecraft:inventory');
                 if (!inventory || !inventory.container) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo inventory found!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo inventory found!');
                     continue;
                 }
 
                 const item = inventory.container.getItem(slotNumber);
 
                 if (!item) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Slot ${slotNumber}: §cEmpty`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Slot ${slotNumber}: §cEmpty`);
                 } else {
                     const displayName = item.nameTag || item.typeId;
                     const durabilityInfo = getDurabilityInfo(item);
                     const enchantInfo = getEnchantmentInfo(item);
                     const loreInfo = item.getLore();
 
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§a--- Slot ${slotNumber} Info ---`);
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Item: §f${displayName} §7(${item.typeId})`);
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Amount: §f${item.amount}`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§a--- Slot ${slotNumber} Info ---`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Item: §f${displayName} §7(${item.typeId})`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Amount: §f${item.amount}`);
 
                     if (durabilityInfo) {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Durability: §f${durabilityInfo}`);
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Durability: §f${durabilityInfo}`);
                     }
 
                     if (enchantInfo.length > 0) {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Enchantments: §f${enchantInfo.join(", ")}`);
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Enchantments: §f${enchantInfo.join(', ')}`);
                     }
 
                     if (loreInfo.length > 0) {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Lore Lines: §f${loreInfo.length}`);
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Lore Lines: §f${loreInfo.length}`);
                     }
                 }
             }
         } catch (e) {
-            console.log("failed to get slot item: " + e);
+            console.log('failed to get slot item: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to get slot info: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to get slot info: ${e.message || e}`);
             }
         }
     });
@@ -2358,7 +2619,7 @@ function getSlotItemFunction(origin, slotNumber, targets = [origin.sourceEntity]
 // Helper functions for item info
 function getDurabilityInfo(item) {
     try {
-        const durability = item.getComponent("minecraft:durability");
+        const durability = item.getComponent('minecraft:durability');
         if (durability) {
             const current = durability.maxDurability - durability.damage;
             const max = durability.maxDurability;
@@ -2373,12 +2634,12 @@ function getDurabilityInfo(item) {
 
 function getEnchantmentInfo(item) {
     try {
-        const enchantments = item.getComponent("minecraft:enchantable");
+        const enchantments = item.getComponent('minecraft:enchantable');
         if (enchantments) {
             const enchantList = [];
             // This would require iterating through enchantments if the API supports it
             // For now, just indicate if enchantments exist
-            return ["Has enchantments"]; // Simplified - actual implementation would list specific enchantments
+            return ['Has enchantments']; // Simplified - actual implementation would list specific enchantments
         }
     } catch (e) {
         // Item doesn't have enchantments
@@ -2390,19 +2651,19 @@ function getPathToolFunction(origin) {
     system.run(() => {
         try {
             const entity = origin.sourceEntity;
-            if (!entity || entity.typeId !== "minecraft:player") return;
+            if (!entity || entity.typeId !== 'minecraft:player') return;
 
-            const equippable = entity.getComponent("minecraft:equippable");
+            const equippable = entity.getComponent('minecraft:equippable');
 
             // Create path tool (diamond shovel with special lore)
-            const pathTool = new ItemStack("minecraft:diamond_shovel", 1);
-            pathTool.nameTag = "§6Path Creation Tool";
-            pathTool.setLore(["§r§r§s§v§e§r§t", "§7Right-click blocks to add waypoints", "§7Use /buildpath to create the path", "§8§l--- WAYPOINTS ---"]);
+            const pathTool = new ItemStack('minecraft:diamond_shovel', 1);
+            pathTool.nameTag = '§6Path Creation Tool';
+            pathTool.setLore(['§r§r§s§v§e§r§t', '§7Right-click blocks to add waypoints', '§7Use /buildpath to create the path', '§8§l--- WAYPOINTS ---']);
 
             equippable.setEquipment(EquipmentSlot.Mainhand, pathTool);
-            if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§aPath tool created! Right-click blocks to add waypoints.");
+            if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§aPath tool created! Right-click blocks to add waypoints.');
         } catch (e) {
-            console.log("failed to create path tool: " + e);
+            console.log('failed to create path tool: ' + e);
         }
     });
 
@@ -2412,11 +2673,11 @@ function getPathToolFunction(origin) {
 // GUI function for path building
 function showBuildPathGUI(player) {
     // First check if player has path tool and waypoints
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const item = equippable.getEquipment(EquipmentSlot.Mainhand);
 
-    if (!item || !item.nameTag || !item.nameTag.includes("Path Creation Tool")) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must hold the Path Creation Tool to use this command!");
+    if (!item || !item.nameTag || !item.nameTag.includes('Path Creation Tool')) {
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must hold the Path Creation Tool to use this command!');
         return;
     }
 
@@ -2424,19 +2685,19 @@ function showBuildPathGUI(player) {
     const waypoints = parseWaypointsFromLore(loreArray);
 
     if (waypoints.length < 2) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou need at least 2 waypoints to create a path! Right-click blocks to add waypoints.");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou need at least 2 waypoints to create a path! Right-click blocks to add waypoints.');
         return;
     }
 
     const form = new ModalFormData()
-        .title("§6Build Path")
-        .textField(`Waypoints Found: ${waypoints.length}`, `${waypoints.map((w, i) => `${i + 1}: ${w.x},${w.y},${w.z}`).join(" | ")}`)
-        .slider("Path Radius", 1, 10)
-        .dropdown("Path Mode", ["Flat (Y level)", "Vertical Flat (XZ plane)", "Spherical (3D)", "Square/Cubic"])
-        .textField("Replace Blocks (ALL or comma separated):", "ALL")
-        .dropdown("Block Source", ["Mainhand Item", "Offhand Item", "Hotbar Slot", "Custom Block ID"])
-        .textField("If Custom Block ID or Hotbar Slot (0-8):", "minecraft:stone")
-        .toggle("Preview Mode (shows affected area with particles)");
+        .title('§6Build Path')
+        .textField(`Waypoints Found: ${waypoints.length}`, `${waypoints.map((w, i) => `${i + 1}: ${w.x},${w.y},${w.z}`).join(' | ')}`)
+        .slider('Path Radius', 1, 10)
+        .dropdown('Path Mode', ['Flat (Y level)', 'Vertical Flat (XZ plane)', 'Spherical (3D)', 'Square/Cubic'])
+        .textField('Replace Blocks (ALL or comma separated):', 'ALL')
+        .dropdown('Block Source', ['Mainhand Item', 'Offhand Item', 'Hotbar Slot', 'Custom Block ID'])
+        .textField('If Custom Block ID or Hotbar Slot (0-8):', 'minecraft:stone')
+        .toggle('Preview Mode (shows affected area with particles)');
 
     form.show(player).then((response) => {
         if (response.canceled) return;
@@ -2466,16 +2727,16 @@ function multiBlockFillFunction(origin, fromLocation, toLocation) {
             const entity = origin.sourceEntity;
             if (!entity) return;
 
-            const equippable = entity.getComponent("minecraft:equippable");
+            const equippable = entity.getComponent('minecraft:equippable');
             const item = equippable.getEquipment(EquipmentSlot.Mainhand);
             if (!item) {
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo item in mainhand!");
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo item in mainhand!');
                 return;
             }
 
             const loreArray = item.getLore();
             if (!loreArray || loreArray.length === 0) {
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cItem does not contain multi-block data!");
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cItem does not contain multi-block data!');
                 return;
             }
 
@@ -2484,18 +2745,18 @@ function multiBlockFillFunction(origin, fromLocation, toLocation) {
             let foundBlocksSection = false;
 
             for (const lore of loreArray) {
-                if (lore === "§7Blocks:") {
+                if (lore === '§7Blocks:') {
                     foundBlocksSection = true;
                     continue;
                 }
-                if (foundBlocksSection && lore.startsWith("§8- ")) {
-                    const blockId = lore.replace("§8- ", "");
+                if (foundBlocksSection && lore.startsWith('§8- ')) {
+                    const blockId = lore.replace('§8- ', '');
                     blockList.push(blockId);
                 }
             }
 
             if (blockList.length === 0) {
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo valid blocks found in multi-block data!");
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo valid blocks found in multi-block data!');
                 return;
             }
 
@@ -2503,16 +2764,16 @@ function multiBlockFillFunction(origin, fromLocation, toLocation) {
             const volume = Math.abs(toLocation.x - fromLocation.x + 1) * Math.abs(toLocation.y - fromLocation.y + 1) * Math.abs(toLocation.z - fromLocation.z + 1);
 
             if (volume > BLOCK_FILLING_CONFIG.MAX_OPERATIONS) {
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§cArea too large! ${volume} blocks would be placed. Maximum is ${BLOCK_FILLING_CONFIG.MAX_OPERATIONS}.`);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§7Consider using smaller areas or increase MAX_OPERATIONS in config.");
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§cArea too large! ${volume} blocks would be placed. Maximum is ${BLOCK_FILLING_CONFIG.MAX_OPERATIONS}.`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§7Consider using smaller areas or increase MAX_OPERATIONS in config.');
                 return;
             }
 
-            if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§aStarting async fill: ${volume} blocks with ${blockList.length} block types...`);
+            if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§aStarting async fill: ${volume} blocks with ${blockList.length} block types...`);
 
             fillAreaWithMultiBlockAsync(entity.dimension, fromLocation, toLocation, blockList, entity);
         } catch (e) {
-            console.log("failed to start multi-block fill: " + e);
+            console.log('failed to start multi-block fill: ' + e);
         }
     });
 
@@ -2554,7 +2815,7 @@ function fillAreaWithMultiBlockAsync(dimension, from, to, blockList, entity) {
         intervalId: null,
     };
 
-    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Starting to fill ${fillState.totalBlocks} blocks...`);
+    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Starting to fill ${fillState.totalBlocks} blocks...`);
 
     // Start the filling process
     fillState.intervalId = system.runInterval(() => {
@@ -2599,16 +2860,16 @@ function processBatchFill(fillState) {
         const elapsed = Math.round((Date.now() - fillState.startTime) / 1000);
         const blocksPerSecond = Math.round(fillState.placedBlocks / elapsed);
 
-        if (!fillState.entity.hasTag("dontshowcommandlogs")) fillState.entity.sendMessage(`§aFill complete!`);
-        if (!fillState.entity.hasTag("dontshowcommandlogs")) fillState.entity.sendMessage(`§7Placed: ${fillState.placedBlocks}, Failed: ${fillState.failedBlocks}`);
-        if (!fillState.entity.hasTag("dontshowcommandlogs")) fillState.entity.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
+        if (!fillState.entity.hasTag('dontshowcommandlogs')) fillState.entity.sendMessage(`§aFill complete!`);
+        if (!fillState.entity.hasTag('dontshowcommandlogs')) fillState.entity.sendMessage(`§7Placed: ${fillState.placedBlocks}, Failed: ${fillState.failedBlocks}`);
+        if (!fillState.entity.hasTag('dontshowcommandlogs')) fillState.entity.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
 
         system.clearRun(fillState.intervalId);
     }
 }
 
 // Updated path creation with async filling
-function fillAreaWithMultiBlockAsyncPath(dimension, from, to, blockList, entity, replaceBlocks = "ALL") {
+function fillAreaWithMultiBlockAsyncPath(dimension, from, to, blockList, entity, replaceBlocks = 'ALL') {
     const minX = Math.min(from.x, to.x);
     const maxX = Math.max(from.x, to.x);
     const minY = Math.min(from.y, to.y);
@@ -2616,8 +2877,8 @@ function fillAreaWithMultiBlockAsyncPath(dimension, from, to, blockList, entity,
     const minZ = Math.min(from.z, to.z);
     const maxZ = Math.max(from.z, to.z);
 
-    const shouldReplaceAll = replaceBlocks === "ALL";
-    const replaceList = shouldReplaceAll ? [] : replaceBlocks.split(",").map((block) => block.trim());
+    const shouldReplaceAll = replaceBlocks === 'ALL';
+    const replaceList = shouldReplaceAll ? [] : replaceBlocks.split(',').map((block) => block.trim());
 
     // Generate positions that need to be filled
     const positions = [];
@@ -2646,7 +2907,7 @@ function fillAreaWithMultiBlockAsyncPath(dimension, from, to, blockList, entity,
     }
 
     if (positions.length === 0) {
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo blocks to replace found in area!");
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo blocks to replace found in area!');
         return;
     }
 
@@ -2666,7 +2927,7 @@ function fillAreaWithMultiBlockAsyncPath(dimension, from, to, blockList, entity,
         intervalId: null,
     };
 
-    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Starting path fill: ${fillState.totalBlocks} blocks to replace...`);
+    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Starting path fill: ${fillState.totalBlocks} blocks to replace...`);
 
     fillState.intervalId = system.runInterval(() => {
         processBatchFill(fillState);
@@ -2688,14 +2949,14 @@ function configFillFunction(origin, blocksPerTick = null, tickDelay = null, maxO
             BLOCK_FILLING_CONFIG.MAX_OPERATIONS = maxOps;
         }
 
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§aBlock Filling Configuration:");
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Blocks per tick: §f${BLOCK_FILLING_CONFIG.BLOCKS_PER_TICK}`);
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Tick delay: §f${BLOCK_FILLING_CONFIG.TICK_DELAY}`);
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Max operations: §f${BLOCK_FILLING_CONFIG.MAX_OPERATIONS}`);
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Progress updates: §f${BLOCK_FILLING_CONFIG.PROGRESS_UPDATE_INTERVAL}`);
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§aBlock Filling Configuration:');
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Blocks per tick: §f${BLOCK_FILLING_CONFIG.BLOCKS_PER_TICK}`);
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Tick delay: §f${BLOCK_FILLING_CONFIG.TICK_DELAY}`);
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Max operations: §f${BLOCK_FILLING_CONFIG.MAX_OPERATIONS}`);
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Progress updates: §f${BLOCK_FILLING_CONFIG.PROGRESS_UPDATE_INTERVAL}`);
 
         const estimatedRate = Math.round((BLOCK_FILLING_CONFIG.BLOCKS_PER_TICK * 20) / BLOCK_FILLING_CONFIG.TICK_DELAY);
-        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Estimated rate: §f${estimatedRate} blocks/second`);
+        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Estimated rate: §f${estimatedRate} blocks/second`);
     });
 
     return { status: CustomCommandStatus.Success };
@@ -2705,11 +2966,11 @@ function buildPathFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             showBuildPathGUI(player);
         } catch (e) {
-            console.log("failed to show build path GUI: " + e);
+            console.log('failed to show build path GUI: ' + e);
         }
     });
 
@@ -2722,11 +2983,11 @@ function parseWaypointsFromLore(loreArray) {
     let foundWaypointsSection = false;
 
     for (const lore of loreArray) {
-        if (lore === "§8§l--- WAYPOINTS ---") {
+        if (lore === '§8§l--- WAYPOINTS ---') {
             foundWaypointsSection = true;
             continue;
         }
-        if (foundWaypointsSection && lore.startsWith("§b")) {
+        if (foundWaypointsSection && lore.startsWith('§b')) {
             // Parse format: "§b1: 100,64,200"
             const match = lore.match(/§b\d+: (-?\d+),(-?\d+),(-?\d+)/);
             if (match) {
@@ -2744,7 +3005,7 @@ function parseWaypointsFromLore(loreArray) {
 
 // Show path preview with particles
 function showPathPreview(player, waypoints, radius, mode) {
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aShowing path preview with particles...");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aShowing path preview with particles...');
 
     let particleCount = 0;
     const maxParticles = 500; // Limit to prevent lag
@@ -2758,7 +3019,7 @@ function showPathPreview(player, waypoints, radius, mode) {
         if (particleCount >= maxParticles) break;
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Preview shown with ${particleCount} particles. Use command again without preview to build.`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Preview shown with ${particleCount} particles. Use command again without preview to build.`);
 }
 
 // Create preview particles for path segment
@@ -2782,7 +3043,7 @@ function createPathPreviewSegment(dimension, from, to, radius, mode, remainingPa
                 for (let z = centerZ - previewRadius; z <= centerZ + previewRadius && particleCount < remainingParticles; z += 2) {
                     if (shouldPlaceAtLocation(centerX, centerY, centerZ, x, y, z, radius, mode)) {
                         try {
-                            dimension.spawnParticle("minecraft:heart_particle", {
+                            dimension.spawnParticle('minecraft:heart_particle', {
                                 x,
                                 y: y + 0.5,
                                 z,
@@ -2806,21 +3067,21 @@ function createPath(player, waypoints, radius, mode, replaceBlocks, blockSource,
     try {
         const pathBlocks = getPathBlocks(player, blockSource, customInput);
         if (!pathBlocks || pathBlocks.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cCould not determine blocks to use for path!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cCould not determine blocks to use for path!');
             return;
         }
 
-        const shouldReplaceAll = replaceBlocks === "ALL";
-        const replaceList = shouldReplaceAll ? [] : replaceBlocks.split(",").map((block) => block.trim());
+        const shouldReplaceAll = replaceBlocks === 'ALL';
+        const replaceList = shouldReplaceAll ? [] : replaceBlocks.split(',').map((block) => block.trim());
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStarting connected path creation...`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Mode: ${["Flat", "Vertical Flat", "Spherical", "Square"][mode]}, Radius: ${radius}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStarting connected path creation...`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Mode: ${['Flat', 'Vertical Flat', 'Spherical', 'Square'][mode]}, Radius: ${radius}`);
 
         // Start building the connected path
         createConnectedPathAsync(player, waypoints, radius, mode, pathBlocks, shouldReplaceAll, replaceList);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create path: ${e.message || e}`);
-        console.log("Failed to create path: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create path: ${e.message || e}`);
+        console.log('Failed to create path: ' + e);
     }
 }
 
@@ -2872,13 +3133,13 @@ function initializeSegment(pathState) {
     pathState.segmentTo = pathState.waypoints[pathState.currentSegment + 1];
 
     const distance = Math.sqrt(
-        Math.pow(pathState.segmentTo.x - pathState.segmentFrom.x, 2) + Math.pow(pathState.segmentTo.y - pathState.segmentFrom.y, 2) + Math.pow(pathState.segmentTo.z - pathState.segmentFrom.z, 2)
+        Math.pow(pathState.segmentTo.x - pathState.segmentFrom.x, 2) + Math.pow(pathState.segmentTo.y - pathState.segmentFrom.y, 2) + Math.pow(pathState.segmentTo.z - pathState.segmentFrom.z, 2),
     );
 
     pathState.totalSteps = Math.min(Math.ceil(distance * 2), 300); // Cap steps per segment
     pathState.currentStep = 0;
 
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Segment ${pathState.currentSegment + 1}/${pathState.totalSegments} - ${pathState.totalSteps} steps`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Segment ${pathState.currentSegment + 1}/${pathState.totalSegments} - ${pathState.totalSteps} steps`);
 
     return true;
 }
@@ -2978,23 +3239,23 @@ function finishConnectedPath(pathState) {
     const elapsed = Math.round((Date.now() - pathState.startTime) / 1000);
     const blocksPerSecond = elapsed > 0 ? Math.round(pathState.totalPlaced / elapsed) : pathState.totalPlaced;
 
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§aConnected path creation complete!`);
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Total placed: ${pathState.totalPlaced}, Failed: ${pathState.totalFailed}`);
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Path connects all ${pathState.waypoints.length} waypoints smoothly!`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§aConnected path creation complete!`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Total placed: ${pathState.totalPlaced}, Failed: ${pathState.totalFailed}`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Path connects all ${pathState.waypoints.length} waypoints smoothly!`);
 
     system.clearRun(pathState.intervalId);
 }
 
 // Get blocks to use for path
 function getPathBlocks(player, blockSource, customInput) {
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
 
     switch (blockSource) {
         case 0: // Mainhand
             const mainhandItem = equippable.getEquipment(EquipmentSlot.Mainhand);
-            if (mainhandItem && mainhandItem.nameTag && mainhandItem.nameTag.includes("Path Creation Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cCannot use path tool as building block! Choose a different source.");
+            if (mainhandItem && mainhandItem.nameTag && mainhandItem.nameTag.includes('Path Creation Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cCannot use path tool as building block! Choose a different source.');
                 return null;
             }
             return mainhandItem ? getBlocksFromItem(mainhandItem) : null;
@@ -3006,10 +3267,10 @@ function getPathBlocks(player, blockSource, customInput) {
         case 2: // Hotbar slot
             const slot = parseInt(customInput);
             if (isNaN(slot) || slot < 0 || slot > 8) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid hotbar slot! Use 0-8.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid hotbar slot! Use 0-8.');
                 return null;
             }
-            const inventory = player.getComponent("minecraft:inventory");
+            const inventory = player.getComponent('minecraft:inventory');
             const hotbarItem = inventory.container.getItem(slot);
             return hotbarItem ? getBlocksFromItem(hotbarItem) : null;
 
@@ -3025,17 +3286,17 @@ function getBlocksFromItem(item) {
     const loreArray = item.getLore();
 
     // Check if it's a multi-block item
-    if (loreArray && loreArray.some((lore) => lore === "§6Multi-Block Item")) {
+    if (loreArray && loreArray.some((lore) => lore === '§6Multi-Block Item')) {
         const blocks = [];
         let foundBlocksSection = false;
 
         for (const lore of loreArray) {
-            if (lore === "§7Blocks:") {
+            if (lore === '§7Blocks:') {
                 foundBlocksSection = true;
                 continue;
             }
-            if (foundBlocksSection && lore.startsWith("§8- ")) {
-                const blockId = lore.replace("§8- ", "");
+            if (foundBlocksSection && lore.startsWith('§8- ')) {
+                const blockId = lore.replace('§8- ', '');
                 blocks.push(blockId);
             }
         }
@@ -3101,7 +3362,7 @@ function processSegmentCalculation(pathState) {
     if (segmentPositions.length === 0) {
         // No positions in this segment, move to next
         pathState.currentSegment++;
-        if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Segment ${pathState.currentSegment}/${pathState.totalSegments} - no valid positions`);
+        if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Segment ${pathState.currentSegment}/${pathState.totalSegments} - no valid positions`);
         return;
     }
 
@@ -3112,7 +3373,7 @@ function processSegmentCalculation(pathState) {
     pathState.currentIndex = 0;
     pathState.isCalculating = false;
 
-    if (!pathState.player.hasTag("dontshowcommandlogs"))
+    if (!pathState.player.hasTag('dontshowcommandlogs'))
         pathState.player.sendMessage(`§7Segment ${pathState.currentSegment + 1}/${pathState.totalSegments} - building ${segmentPositions.length} blocks...`);
 }
 
@@ -3151,7 +3412,7 @@ function processSegmentBuilding(pathState) {
         pathState.isCalculating = true;
 
         const elapsed = Math.round((Date.now() - pathState.startTime) / 1000);
-        if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§aSegment complete! Total: ${pathState.totalPlaced} blocks placed (${elapsed}s)`);
+        if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§aSegment complete! Total: ${pathState.totalPlaced} blocks placed (${elapsed}s)`);
     }
 }
 
@@ -3160,9 +3421,9 @@ function finishPathCreation(pathState) {
     const elapsed = Math.round((Date.now() - pathState.startTime) / 1000);
     const blocksPerSecond = elapsed > 0 ? Math.round(pathState.totalPlaced / elapsed) : pathState.totalPlaced;
 
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§aPath creation complete!`);
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Total placed: ${pathState.totalPlaced}, Failed: ${pathState.totalFailed}`);
-    if (!pathState.player.hasTag("dontshowcommandlogs")) pathState.player.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§aPath creation complete!`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Total placed: ${pathState.totalPlaced}, Failed: ${pathState.totalFailed}`);
+    if (!pathState.player.hasTag('dontshowcommandlogs')) pathState.player.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
 
     system.clearRun(pathState.intervalId);
 }
@@ -3259,25 +3520,25 @@ function shouldPlaceAtLocation(centerX, centerY, centerZ, x, y, z, radius, mode)
 
 // Event handler for path tool usage
 world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.source.typeId !== "minecraft:player" || !ev.itemStack) return;
+    if (ev.source.typeId !== 'minecraft:player' || !ev.itemStack) return;
 
     const player = ev.source;
     const itemStack = ev.itemStack;
 
     // Check if it's the path tool
-    if (!itemStack.nameTag || !itemStack.nameTag.includes("Path Creation Tool")) return;
+    if (!itemStack.nameTag || !itemStack.nameTag.includes('Path Creation Tool')) return;
 
     try {
         // Get block player is looking at
         const blockFromView = player.getBlockFromViewDirection({ maxDistance: 64 });
 
         if (!blockFromView || !blockFromView.block) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo block found in view direction!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo block found in view direction!');
             return;
         }
 
         const targetLocation = blockFromView.block.location;
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
         const currentTool = equippable.getEquipment(EquipmentSlot.Mainhand);
 
         if (!currentTool) return;
@@ -3290,7 +3551,7 @@ world.afterEvents.itemUse.subscribe((ev) => {
         const alreadyExists = waypoints.some((wp) => wp.x === targetLocation.x && wp.y === targetLocation.y && wp.z === targetLocation.z);
 
         if (alreadyExists) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§eWaypoint already exists at this location!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§eWaypoint already exists at this location!');
             return;
         }
 
@@ -3304,21 +3565,21 @@ world.afterEvents.itemUse.subscribe((ev) => {
         newTool.setLore(newLore);
         equippable.setEquipment(EquipmentSlot.Mainhand, newTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aWaypoint ${waypointNumber} added: ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Total waypoints: ${waypointNumber}. Use /buildpath when ready.`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aWaypoint ${waypointNumber} added: ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Total waypoints: ${waypointNumber}. Use /buildpath when ready.`);
     } catch (e) {
-        console.log("Error adding waypoint: " + e);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to add waypoint!");
+        console.log('Error adding waypoint: ' + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to add waypoint!');
     }
 });
 
 // Main build text function
-function buildTextFunction(origin, text, location = null, scale = 3, direction = "north", vertical = false, fontStyle = "slim") {
+function buildTextFunction(origin, text, location = null, scale = 3, direction = 'north', vertical = false, fontStyle = 'slim') {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Build text requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Build text requires a player');
                 return;
             }
 
@@ -3333,19 +3594,19 @@ function buildTextFunction(origin, text, location = null, scale = 3, direction =
             // Get blocks to use
             const blocks = getTextBlocks(player);
             if (!blocks || blocks.length === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo valid blocks found! Hold a block or multi-block item.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo valid blocks found! Hold a block or multi-block item.');
                 return;
             }
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStarting text build: "${text}"`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Font: ${fontStyle}, Scale: ${scale}x, Direction: ${direction}${vertical ? " (vertical)" : ""}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStarting text build: "${text}"`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Font: ${fontStyle}, Scale: ${scale}x, Direction: ${direction}${vertical ? ' (vertical)' : ''}`);
 
             // Start async text building
             buildTextAsync(player, text, startLocation, scale, direction, vertical, fontStyle, blocks);
         } catch (e) {
-            console.log("Failed to build text: " + e);
+            console.log('Failed to build text: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to build text: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to build text: ${e.message || e}`);
             }
         }
     });
@@ -3357,26 +3618,26 @@ function buildTextFunction(origin, text, location = null, scale = 3, direction =
 function validateTextInput(text, scale, direction, fontStyle, player) {
     // Check text length
     if (text.length > 20) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cText too long! Maximum 20 characters.");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cText too long! Maximum 20 characters.');
         return { valid: false };
     }
 
     // Check scale
     if (scale < 1 || scale > 10) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid scale! Use 1-10.");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid scale! Use 1-10.');
         return { valid: false };
     }
 
     // Check direction
-    const validDirections = ["north", "south", "east", "west"];
+    const validDirections = ['north', 'south', 'east', 'west'];
     if (!validDirections.includes(direction.toLowerCase())) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid direction! Use: north, south, east, west");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid direction! Use: north, south, east, west');
         return { valid: false };
     }
 
     // Check font style
     if (!FONTS[fontStyle]) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid font style! Available: ${Object.keys(FONTS).join(", ")}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid font style! Available: ${Object.keys(FONTS).join(', ')}`);
         return { valid: false };
     }
 
@@ -3390,8 +3651,8 @@ function validateTextInput(text, scale, direction, fontStyle, player) {
     }
 
     if (unsupported.length > 0) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cUnsupported characters: ${unsupported.join(", ")}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Available: ${Object.keys(font).join("")}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cUnsupported characters: ${unsupported.join(', ')}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Available: ${Object.keys(font).join('')}`);
         return { valid: false };
     }
 
@@ -3400,24 +3661,24 @@ function validateTextInput(text, scale, direction, fontStyle, player) {
 
 // Get blocks from player's item
 function getTextBlocks(player) {
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const item = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
     if (!item) return null;
 
     // Check if it's a multi-block item
     const loreArray = item.getLore();
-    if (loreArray && loreArray.some((lore) => lore === "§6Multi-Block Item")) {
+    if (loreArray && loreArray.some((lore) => lore === '§6Multi-Block Item')) {
         const blocks = [];
         let foundBlocksSection = false;
 
         for (const lore of loreArray) {
-            if (lore === "§7Blocks:") {
+            if (lore === '§7Blocks:') {
                 foundBlocksSection = true;
                 continue;
             }
-            if (foundBlocksSection && lore.startsWith("§8- ")) {
-                const blockId = lore.replace("§8- ", "");
+            if (foundBlocksSection && lore.startsWith('§8- ')) {
+                const blockId = lore.replace('§8- ', '');
                 blocks.push(blockId);
             }
         }
@@ -3439,12 +3700,12 @@ function buildTextAsync(player, text, startLocation, scale, direction, vertical,
     // Estimate total blocks
     const estimatedBlocks = estimateBlockCount(upperText, font, scale);
     if (estimatedBlocks > 500000) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cText too large! Estimated ${estimatedBlocks} blocks. Maximum is 50,000.`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Try smaller scale or shorter text.");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cText too large! Estimated ${estimatedBlocks} blocks. Maximum is 50,000.`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Try smaller scale or shorter text.');
         return;
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Building ${upperText.length} characters, estimated ${estimatedBlocks} blocks...`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Building ${upperText.length} characters, estimated ${estimatedBlocks} blocks...`);
 
     // Initialize build state
     const buildState = {
@@ -3513,7 +3774,7 @@ function estimateBlockCount(text, font, scale) {
         if (pattern) {
             for (const row of pattern) {
                 for (const pixel of row) {
-                    if (pixel === "#") {
+                    if (pixel === '#') {
                         totalBlocks += scale * scale; // Each pixel becomes scale×scale blocks
                     }
                 }
@@ -3573,7 +3834,7 @@ function buildCharacterRow(buildState, char, pattern) {
 
     // Build each pixel in the row
     for (let col = 0; col < row.length; col++) {
-        if (row[col] === "#") {
+        if (row[col] === '#') {
             // Calculate pixel position
             const pixelPos = calculatePixelPosition(charStartX, charStartY, charStartZ, col, buildState.currentRow, buildState.scale, buildState.direction, buildState.vertical, buildState);
 
@@ -3600,13 +3861,13 @@ function calculateCharacterStartX(buildState) {
 
     // Apply direction
     switch (buildState.direction.toLowerCase()) {
-        case "north":
+        case 'north':
             return buildState.startLocation.x - offsetX;
-        case "south":
+        case 'south':
             return buildState.startLocation.x + offsetX;
-        case "east":
+        case 'east':
             return buildState.startLocation.x;
-        case "west":
+        case 'west':
             return buildState.startLocation.x;
         default:
             return buildState.startLocation.x - offsetX;
@@ -3639,13 +3900,13 @@ function calculateCharacterStartZ(buildState) {
 
     // Apply direction
     switch (buildState.direction.toLowerCase()) {
-        case "north":
+        case 'north':
             return buildState.startLocation.z;
-        case "south":
+        case 'south':
             return buildState.startLocation.z;
-        case "east":
+        case 'east':
             return buildState.startLocation.z + offsetZ;
-        case "west":
+        case 'west':
             return buildState.startLocation.z - offsetZ;
         default:
             return buildState.startLocation.z;
@@ -3665,16 +3926,16 @@ function calculatePixelPosition(startX, startY, startZ, col, row, scale, directi
 
         // X/Z position is based on column within character (same orientation as horizontal)
         switch (direction.toLowerCase()) {
-            case "north":
+            case 'north':
                 pixelX = startX - col * scale;
                 break;
-            case "south":
+            case 'south':
                 pixelX = startX + col * scale;
                 break;
-            case "east":
+            case 'east':
                 pixelZ = startZ + col * scale;
                 break;
-            case "west":
+            case 'west':
                 pixelZ = startZ - col * scale;
                 break;
         }
@@ -3683,16 +3944,16 @@ function calculatePixelPosition(startX, startY, startZ, col, row, scale, directi
         pixelY = startY + (buildState.font[buildState.text[buildState.currentChar]].length - 1 - row) * scale;
 
         switch (direction.toLowerCase()) {
-            case "north":
+            case 'north':
                 pixelX = startX - col * scale;
                 break;
-            case "south":
+            case 'south':
                 pixelX = startX + col * scale;
                 break;
-            case "east":
+            case 'east':
                 pixelZ = startZ + col * scale;
                 break;
-            case "west":
+            case 'west':
                 pixelZ = startZ - col * scale;
                 break;
         }
@@ -3739,11 +4000,11 @@ function finishTextBuilding(buildState) {
     const elapsed = Math.round((Date.now() - buildState.startTime) / 1000);
     const blocksPerSecond = elapsed > 0 ? Math.round(buildState.blocksPlaced / elapsed) : buildState.blocksPlaced;
 
-    if (!buildState.player.hasTag("dontshowcommandlogs")) buildState.player.sendMessage(`§aText building complete!`);
-    if (!buildState.player.hasTag("dontshowcommandlogs")) buildState.player.sendMessage(`§7Text: "${buildState.text}"`);
-    if (!buildState.player.hasTag("dontshowcommandlogs")) buildState.player.sendMessage(`§7Blocks placed: ${buildState.blocksPlaced}, Failed: ${buildState.blocksFailed}`);
-    if (!buildState.player.hasTag("dontshowcommandlogs")) buildState.player.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
-    if (!buildState.player.hasTag("dontshowcommandlogs")) buildState.player.sendMessage(`§7Font: ${Object.keys(FONTS).find((key) => FONTS[key] === buildState.font)}, Scale: ${buildState.scale}x`);
+    if (!buildState.player.hasTag('dontshowcommandlogs')) buildState.player.sendMessage(`§aText building complete!`);
+    if (!buildState.player.hasTag('dontshowcommandlogs')) buildState.player.sendMessage(`§7Text: "${buildState.text}"`);
+    if (!buildState.player.hasTag('dontshowcommandlogs')) buildState.player.sendMessage(`§7Blocks placed: ${buildState.blocksPlaced}, Failed: ${buildState.blocksFailed}`);
+    if (!buildState.player.hasTag('dontshowcommandlogs')) buildState.player.sendMessage(`§7Time: ${elapsed}s (${blocksPerSecond} blocks/s)`);
+    if (!buildState.player.hasTag('dontshowcommandlogs')) buildState.player.sendMessage(`§7Font: ${Object.keys(FONTS).find((key) => FONTS[key] === buildState.font)}, Scale: ${buildState.scale}x`);
 
     system.clearRun(buildState.intervalId);
 }
@@ -3756,16 +4017,16 @@ function brushFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Brush requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Brush requires a player');
                 return;
             }
 
             showBrushConfigGUI(player);
         } catch (e) {
-            console.log("Failed to open brush GUI: " + e);
+            console.log('Failed to open brush GUI: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to open brush GUI: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to open brush GUI: ${e.message || e}`);
             }
         }
     });
@@ -3777,42 +4038,42 @@ function brushFunction(origin) {
 function showBrushConfigGUI(player) {
     // Get current brush config if exists
     const currentBrush = ACTIVE_BRUSHES.get(player.id) || {
-        form: "sphere",
+        form: 'sphere',
         size: 3,
         range: 50,
-        blockSource: "offhand",
-        customBlock: "minecraft:stone",
-        replaceMode: "all",
-        replaceBlocks: "air",
+        blockSource: 'offhand',
+        customBlock: 'minecraft:stone',
+        replaceMode: 'all',
+        replaceBlocks: 'air',
     };
 
     const form = new ModalFormData()
-        .title("§6Brush Configuration")
-        .dropdown("Brush Form", ["Sphere", "Cube", "Cylinder", "Cone"], {
-            defaultValueIndex: ["sphere", "cube", "cylinder", "cone"].indexOf(currentBrush.form),
+        .title('§6Brush Configuration')
+        .dropdown('Brush Form', ['Sphere', 'Cube', 'Cylinder', 'Cone'], {
+            defaultValueIndex: ['sphere', 'cube', 'cylinder', 'cone'].indexOf(currentBrush.form),
         })
-        .slider("Brush Size", 1, 20, { defaultValue: currentBrush.size })
-        .slider("Brush Range (blocks)", 10, 100, {
+        .slider('Brush Size', 1, 20, { defaultValue: currentBrush.size })
+        .slider('Brush Range (blocks)', 10, 100, {
             defaultValue: currentBrush.range,
         })
-        .dropdown("Block Source", ["Offhand Item", "Mainhand Item", "Custom Block ID"], {
-            defaultValueIndex: ["offhand", "mainhand", "custom"].indexOf(currentBrush.blockSource),
+        .dropdown('Block Source', ['Offhand Item', 'Mainhand Item', 'Custom Block ID'], {
+            defaultValueIndex: ['offhand', 'mainhand', 'custom'].indexOf(currentBrush.blockSource),
         })
-        .textField("Custom Block ID (if Custom selected):", currentBrush.customBlock, { defaultValue: currentBrush.customBlock })
-        .dropdown("Replace Mode", ["Replace All", "Replace Specific"], {
-            defaultValueIndex: ["all", "specific"].indexOf(currentBrush.replaceMode),
+        .textField('Custom Block ID (if Custom selected):', currentBrush.customBlock, { defaultValue: currentBrush.customBlock })
+        .dropdown('Replace Mode', ['Replace All', 'Replace Specific'], {
+            defaultValueIndex: ['all', 'specific'].indexOf(currentBrush.replaceMode),
         })
-        .textField("Blocks to Replace (comma separated, if Specific):", currentBrush.replaceBlocks, { defaultValue: currentBrush.replaceBlocks })
-        .toggle("Preview Mode (show affected area with particles)");
+        .textField('Blocks to Replace (comma separated, if Specific):', currentBrush.replaceBlocks, { defaultValue: currentBrush.replaceBlocks })
+        .toggle('Preview Mode (show affected area with particles)');
 
     form.show(player).then((response) => {
         if (response.canceled) return;
 
         const [formIndex, size, range, blockSourceIndex, customBlock, replaceModeIndex, replaceBlocks, previewMode] = response.formValues;
 
-        const forms = ["sphere", "cube", "cylinder", "cone"];
-        const blockSources = ["offhand", "mainhand", "custom"];
-        const replaceModes = ["all", "specific"];
+        const forms = ['sphere', 'cube', 'cylinder', 'cone'];
+        const blockSources = ['offhand', 'mainhand', 'custom'];
+        const replaceModes = ['all', 'specific'];
 
         const brushConfig = {
             form: forms[formIndex],
@@ -3837,17 +4098,17 @@ function showBrushConfigGUI(player) {
 // Create brush tool item
 function createBrushTool(player, brushConfig) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
 
         // Create brush tool (wooden axe with special lore)
-        const brushTool = new ItemStack("minecraft:wooden_axe", 1);
-        brushTool.nameTag = "§eBrush Tool";
+        const brushTool = new ItemStack('minecraft:wooden_axe', 1);
+        brushTool.nameTag = '§eBrush Tool';
 
         // Create lore with configuration
         const loreLines = [
-            "§7Right-click to brush at target block",
-            "§7Left-click to open configuration",
-            "§8§l--- BRUSH CONFIG ---",
+            '§7Right-click to brush at target block',
+            '§7Left-click to open configuration',
+            '§8§l--- BRUSH CONFIG ---',
             `§7Form: §f${brushConfig.form.charAt(0).toUpperCase() + brushConfig.form.slice(1)}`,
             `§7Size: §f${brushConfig.size} blocks`,
             `§7Range: §f${brushConfig.range} blocks`,
@@ -3855,11 +4116,11 @@ function createBrushTool(player, brushConfig) {
             `§7Replace Mode: §f${brushConfig.replaceMode}`,
         ];
 
-        if (brushConfig.blockSource === "custom") {
+        if (brushConfig.blockSource === 'custom') {
             loreLines.push(`§7Custom Block: §f${brushConfig.customBlock}`);
         }
 
-        if (brushConfig.replaceMode === "specific") {
+        if (brushConfig.replaceMode === 'specific') {
             loreLines.push(`§7Replace: §f${brushConfig.replaceBlocks}`);
         }
 
@@ -3870,12 +4131,12 @@ function createBrushTool(player, brushConfig) {
         // Store brush config
         ACTIVE_BRUSHES.set(player.id, brushConfig);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aBrush tool created!");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7${brushConfig.form} brush, size ${brushConfig.size}, range ${brushConfig.range}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Right-click blocks to brush, left-click tool to reconfigure");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aBrush tool created!');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7${brushConfig.form} brush, size ${brushConfig.size}, range ${brushConfig.range}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Right-click blocks to brush, left-click tool to reconfigure');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create brush tool: ${e}`);
-        console.log("Failed to create brush tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create brush tool: ${e}`);
+        console.log('Failed to create brush tool: ' + e);
     }
 }
 
@@ -3887,12 +4148,12 @@ function showBrushPreview(player, brushConfig) {
     });
 
     if (!blockFromView || !blockFromView.block) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo block found in view direction within range!");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo block found in view direction within range!');
         return;
     }
 
     const targetLocation = blockFromView.block.location;
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aShowing brush preview at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aShowing brush preview at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
 
     // Generate preview positions
     const positions = generateBrushPositions(targetLocation, brushConfig);
@@ -3905,7 +4166,7 @@ function showBrushPreview(player, brushConfig) {
         if (particleCount >= maxParticles) break;
 
         try {
-            player.dimension.spawnParticle("minecraft:heart_particle", {
+            player.dimension.spawnParticle('minecraft:heart_particle', {
                 x: pos.x + 0.5,
                 y: pos.y + 0.5,
                 z: pos.z + 0.5,
@@ -3916,8 +4177,8 @@ function showBrushPreview(player, brushConfig) {
         }
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Preview: ${particleCount} particles shown (${positions.length} total positions)`);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Use form again without preview to create brush tool");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Preview: ${particleCount} particles shown (${positions.length} total positions)`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Use form again without preview to create brush tool');
 }
 
 // Generate positions based on brush form and size
@@ -3926,16 +4187,16 @@ function generateBrushPositions(centerLocation, brushConfig) {
     const { form, size } = brushConfig;
 
     switch (form) {
-        case "sphere":
+        case 'sphere':
             positions.push(...generateSpherePositions(centerLocation, size));
             break;
-        case "cube":
+        case 'cube':
             positions.push(...generateCubePositions(centerLocation, size));
             break;
-        case "cylinder":
+        case 'cylinder':
             positions.push(...generateCylinderPositions(centerLocation, size));
             break;
-        case "cone":
+        case 'cone':
             positions.push(...generateConePositions(centerLocation, size));
             break;
     }
@@ -4032,25 +4293,25 @@ function generateConePositions(center, size) {
 
 // Get blocks for brushing
 function getBrushBlocks(player, brushConfig) {
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
 
     switch (brushConfig.blockSource) {
-        case "mainhand":
+        case 'mainhand':
             const mainhandItem = equippable.getEquipment(EquipmentSlot.Mainhand);
             // Don't use the brush tool itself
-            if (mainhandItem && (!mainhandItem.nameTag || !mainhandItem.nameTag.includes("Brush Tool"))) {
+            if (mainhandItem && (!mainhandItem.nameTag || !mainhandItem.nameTag.includes('Brush Tool'))) {
                 return getBlocksFromItem(mainhandItem);
             }
             break;
 
-        case "offhand":
+        case 'offhand':
             const offhandItem = equippable.getEquipment(EquipmentSlot.Offhand);
             if (offhandItem) {
                 return getBlocksFromItem(offhandItem);
             }
             break;
 
-        case "custom":
+        case 'custom':
             return [brushConfig.customBlock];
     }
 
@@ -4063,15 +4324,15 @@ function performBrushOperation(player, targetLocation, brushConfig) {
         // Get blocks to use
         const blocks = getBrushBlocks(player, brushConfig);
         if (!blocks || blocks.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo blocks available for brushing! Check your block source.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo blocks available for brushing! Check your block source.');
             return;
         }
 
         // Generate positions
         const positions = generateBrushPositions(targetLocation, brushConfig);
 
-        if (positions.length > 100000) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cBrush too large! ${positions.length} blocks. Maximum 100000 per brush.`);
+        if (positions.length > 1000000) {
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cBrush too large! ${positions.length} blocks. Maximum 1000000 per brush.`);
             return;
         }
 
@@ -4079,27 +4340,27 @@ function performBrushOperation(player, targetLocation, brushConfig) {
         const validPositions = filterPositionsByReplaceMode(player.dimension, positions, brushConfig);
 
         if (validPositions.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§eNo valid blocks to replace found.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§eNo valid blocks to replace found.');
             return;
         }
 
         // Start async brushing
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Brushing ${validPositions.length} blocks...`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Brushing ${validPositions.length} blocks...`);
         performAsyncBrush(player, validPositions, blocks);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cBrush operation failed: ${e}`);
-        console.log("Brush operation failed: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cBrush operation failed: ${e}`);
+        console.log('Brush operation failed: ' + e);
     }
 }
 
 // Filter positions by replace mode
 function filterPositionsByReplaceMode(dimension, positions, brushConfig) {
-    if (brushConfig.replaceMode === "all") {
+    if (brushConfig.replaceMode === 'all') {
         return positions;
     }
 
     // Specific replacement mode
-    const replaceList = brushConfig.replaceBlocks.split(",").map((block) => block.trim().toLowerCase());
+    const replaceList = brushConfig.replaceBlocks.split(',').map((block) => block.trim().toLowerCase());
     const validPositions = [];
 
     for (const pos of positions) {
@@ -4107,7 +4368,7 @@ function filterPositionsByReplaceMode(dimension, positions, brushConfig) {
             const currentBlock = dimension.getBlock(pos);
             const currentBlockId = currentBlock.typeId.toLowerCase();
 
-            const shouldReplace = replaceList.some((replaceBlock) => currentBlockId.includes(replaceBlock) || (replaceBlock === "air" && currentBlockId === "minecraft:air"));
+            const shouldReplace = replaceList.some((replaceBlock) => currentBlockId.includes(replaceBlock) || (replaceBlock === 'air' && currentBlockId === 'minecraft:air'));
 
             if (shouldReplace) {
                 validPositions.push(pos);
@@ -4138,7 +4399,7 @@ function performAsyncBrush(player, positions, blocks) {
     shuffleArray(brushState.positions);
 
     brushState.intervalId = system.runInterval(() => {
-        const blocksPerTick = Math.min(500, brushState.positions.length - brushState.currentIndex);
+        const blocksPerTick = Math.min(700, brushState.positions.length - brushState.currentIndex);
 
         for (let i = 0; i < blocksPerTick; i++) {
             if (brushState.currentIndex >= brushState.positions.length) break;
@@ -4160,7 +4421,7 @@ function performAsyncBrush(player, positions, blocks) {
         // Check if complete
         if (brushState.currentIndex >= brushState.positions.length) {
             const elapsed = Math.round((Date.now() - brushState.startTime) / 1000);
-            if (!brushState.player.hasTag("dontshowcommandlogs")) brushState.player.sendMessage(`§aBrush complete! ${brushState.blocksPlaced} blocks placed (${elapsed}s)`);
+            if (!brushState.player.hasTag('dontshowcommandlogs')) brushState.player.sendMessage(`§aBrush complete! ${brushState.blocksPlaced} blocks placed (${elapsed}s)`);
 
             system.clearRun(brushState.intervalId);
         }
@@ -4170,11 +4431,11 @@ function performAsyncBrush(player, positions, blocks) {
 // Event handler for brush tool left-click - OPEN CONFIG GUI
 world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     const player = ev.player;
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
     // Check if holding brush tool
-    if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Brush Tool")) return;
+    if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Brush Tool')) return;
 
     // Cancel the break event
     ev.cancel = true;
@@ -4185,18 +4446,18 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
 
 // Event handler for brush tool right-click - BRUSH OPERATION
 world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.source.typeId !== "minecraft:player" || !ev.itemStack) return;
+    if (ev.source.typeId !== 'minecraft:player' || !ev.itemStack) return;
 
     const player = ev.source;
     const itemStack = ev.itemStack;
 
     // Check if it's the brush tool
-    if (!itemStack.nameTag || !itemStack.nameTag.includes("Brush Tool")) return;
+    if (!itemStack.nameTag || !itemStack.nameTag.includes('Brush Tool')) return;
 
     // Get target block player is looking at
     const brushConfig = ACTIVE_BRUSHES.get(player.id);
     if (!brushConfig) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cBrush not configured! Left-click the tool to configure.");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cBrush not configured! Left-click the tool to configure.');
         return;
     }
 
@@ -4204,7 +4465,7 @@ world.afterEvents.itemUse.subscribe((ev) => {
         maxDistance: brushConfig.range,
     });
     if (!blockFromView || !blockFromView.block) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo block found in view direction within range!");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo block found in view direction within range!');
         return;
     }
 
@@ -4213,19 +4474,19 @@ world.afterEvents.itemUse.subscribe((ev) => {
 });
 
 // Main large fill function
-function largeFillFunction(origin, fromLocation, toLocation, block, fillMode = "replace", replaceFilter = "all") {
+function largeFillFunction(origin, fromLocation, toLocation, block, fillMode = 'replace', replaceFilter = 'all') {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Large fill requires a player source");
+                console.log('Large fill requires a player source');
                 return;
             }
 
             // Validate fill mode
-            const validModes = ["replace", "keep", "outline", "hollow", "destroy"];
+            const validModes = ['replace', 'keep', 'outline', 'hollow', 'destroy'];
             if (!validModes.includes(fillMode.toLowerCase())) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid fill mode! Use: ${validModes.join(", ")}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid fill mode! Use: ${validModes.join(', ')}`);
                 return;
             }
 
@@ -4234,35 +4495,35 @@ function largeFillFunction(origin, fromLocation, toLocation, block, fillMode = "
 
             // Size validation
             if (volume > 5000000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cArea too large! ${volume.toLocaleString()} blocks. Maximum is 5,000,000.`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Consider breaking the fill into smaller sections.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cArea too large! ${volume.toLocaleString()} blocks. Maximum is 5,000,000.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Consider breaking the fill into smaller sections.');
                 return;
             }
 
             if (volume > 100000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§eWarning: Large fill of ${volume.toLocaleString()} blocks. This will take time!`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§eWarning: Large fill of ${volume.toLocaleString()} blocks. This will take time!`);
             }
 
             // Validate block type
             try {
                 BlockPermutation.resolve(block.id);
             } catch (e) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid block type: ${block?.id}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid block type: ${block?.id}`);
                 return;
             }
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStarting large fill: ${volume.toLocaleString()} blocks`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Mode: ${fillMode}, Block: ${block.id}`);
-            if (fillMode === "replace" && replaceFilter !== "all") {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Replace filter: ${replaceFilter}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStarting large fill: ${volume.toLocaleString()} blocks`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Mode: ${fillMode}, Block: ${block.id}`);
+            if (fillMode === 'replace' && replaceFilter !== 'all') {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Replace filter: ${replaceFilter}`);
             }
 
             // Start async fill operation
             performLargeFillAsync(player, fromLocation, toLocation, block.id, fillMode.toLowerCase(), replaceFilter);
         } catch (e) {
-            console.log("Failed to perform large fill: " + e);
+            console.log('Failed to perform large fill: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to perform large fill: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to perform large fill: ${e.message || e}`);
             }
         }
     });
@@ -4310,14 +4571,14 @@ function performLargeFillAsync(player, fromLoc, toLoc, blockType, fillMode, repl
     };
 
     // Parse replace filter if needed
-    if (fillMode === "replace" && replaceFilter !== "all") {
-        fillState.replaceList = replaceFilter.split(",").map((block) => block.trim().toLowerCase());
+    if (fillMode === 'replace' && replaceFilter !== 'all') {
+        fillState.replaceList = replaceFilter.split(',').map((block) => block.trim().toLowerCase());
     }
 
     // Prepare block permutation
     fillState.blockPermutation = BlockPermutation.resolve(blockType);
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Processing ${fillState.totalVolume.toLocaleString()} block area...`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Processing ${fillState.totalVolume.toLocaleString()} block area...`);
 
     // Start processing
     fillState.intervalId = system.runInterval(() => {
@@ -4388,24 +4649,24 @@ function processLargeFillBlock(fillState, location) {
         const currentBlockType = currentBlock.typeId;
 
         switch (fillState.fillMode) {
-            case "replace":
+            case 'replace':
                 return processReplaceMode(fillState, location, currentBlock, currentBlockType);
 
-            case "keep":
+            case 'keep':
                 // Only place if current block is air
-                if (currentBlockType === "minecraft:air") {
+                if (currentBlockType === 'minecraft:air') {
                     fillState.dimension.setBlockPermutation(location, fillState.blockPermutation);
                     return true;
                 }
                 return false;
 
-            case "outline":
+            case 'outline':
                 return processOutlineMode(fillState, location);
 
-            case "hollow":
+            case 'hollow':
                 return processHollowMode(fillState, location);
 
-            case "destroy":
+            case 'destroy':
                 // Always place, destroying what's there
                 fillState.dimension.setBlockPermutation(location, fillState.blockPermutation);
                 return true;
@@ -4421,13 +4682,13 @@ function processLargeFillBlock(fillState, location) {
 
 // Process replace mode
 function processReplaceMode(fillState, location, currentBlock, currentBlockType) {
-    if (fillState.replaceFilter === "all") {
+    if (fillState.replaceFilter === 'all') {
         // Replace everything
         fillState.dimension.setBlockPermutation(location, fillState.blockPermutation);
         return true;
     } else {
         // Replace only specific blocks
-        const shouldReplace = fillState.replaceList.some((replaceBlock) => currentBlockType.toLowerCase().includes(replaceBlock) || (replaceBlock === "air" && currentBlockType === "minecraft:air"));
+        const shouldReplace = fillState.replaceList.some((replaceBlock) => currentBlockType.toLowerCase().includes(replaceBlock) || (replaceBlock === 'air' && currentBlockType === 'minecraft:air'));
 
         if (shouldReplace) {
             fillState.dimension.setBlockPermutation(location, fillState.blockPermutation);
@@ -4480,12 +4741,12 @@ function finishLargeFill(fillState) {
     const seconds = elapsed % 60;
     const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 
-    if (!fillState.player.hasTag("dontshowcommandlogs")) fillState.player.sendMessage(`§aLarge fill complete!`);
-    if (!fillState.player.hasTag("dontshowcommandlogs")) fillState.player.sendMessage(`§7Processed: ${fillState.processedBlocks.toLocaleString()} blocks`);
-    if (!fillState.player.hasTag("dontshowcommandlogs"))
+    if (!fillState.player.hasTag('dontshowcommandlogs')) fillState.player.sendMessage(`§aLarge fill complete!`);
+    if (!fillState.player.hasTag('dontshowcommandlogs')) fillState.player.sendMessage(`§7Processed: ${fillState.processedBlocks.toLocaleString()} blocks`);
+    if (!fillState.player.hasTag('dontshowcommandlogs'))
         fillState.player.sendMessage(`§7Placed: ${fillState.placedBlocks.toLocaleString()}, Skipped: ${fillState.skippedBlocks.toLocaleString()}, Failed: ${fillState.failedBlocks.toLocaleString()}`);
-    if (!fillState.player.hasTag("dontshowcommandlogs")) fillState.player.sendMessage(`§7Time: ${timeStr} (${rate.toLocaleString()} blocks/s)`);
-    if (!fillState.player.hasTag("dontshowcommandlogs")) fillState.player.sendMessage(`§7Mode: ${fillState.fillMode}, Block: ${fillState.blockType}`);
+    if (!fillState.player.hasTag('dontshowcommandlogs')) fillState.player.sendMessage(`§7Time: ${timeStr} (${rate.toLocaleString()} blocks/s)`);
+    if (!fillState.player.hasTag('dontshowcommandlogs')) fillState.player.sendMessage(`§7Mode: ${fillState.fillMode}, Block: ${fillState.blockType}`);
 
     system.clearRun(fillState.intervalId);
 }
@@ -4505,27 +4766,27 @@ function fillInfoFunction(origin, fromLocation, toLocation) {
             const estimatedMinutes = Math.floor(estimatedSeconds / 60);
             const remainingSeconds = estimatedSeconds % 60;
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§a--- Fill Area Information ---`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Dimensions: §f${dimensions}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Total volume: §f${volume.toLocaleString()} blocks`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§a--- Fill Area Information ---`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Dimensions: §f${dimensions}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Total volume: §f${volume.toLocaleString()} blocks`);
 
             if (volume > 5000000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cToo large for largefill! Maximum is 5,000,000 blocks.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cToo large for largefill! Maximum is 5,000,000 blocks.`);
             } else if (volume > 100000) {
                 const timeStr = estimatedMinutes > 0 ? `${estimatedMinutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§eEstimated time: §f~${timeStr}`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7This is a large operation - ensure good performance before starting.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§eEstimated time: §f~${timeStr}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7This is a large operation - ensure good performance before starting.`);
             } else {
                 const timeStr = estimatedMinutes > 0 ? `${estimatedMinutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aEstimated time: §f~${timeStr}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aEstimated time: §f~${timeStr}`);
             }
 
-            if (!player.hasTag("dontshowcommandlogs"))
+            if (!player.hasTag('dontshowcommandlogs'))
                 player.sendMessage(`§7Use: §f/largefill ${fromLocation.x} ${fromLocation.y} ${fromLocation.z} ${toLocation.x} ${toLocation.y} ${toLocation.z} <block> [mode]`);
         } catch (e) {
-            console.log("Failed to calculate fill info: " + e);
+            console.log('Failed to calculate fill info: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to calculate fill info: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to calculate fill info: ${e.message || e}`);
             }
         }
     });
@@ -4534,32 +4795,32 @@ function fillInfoFunction(origin, fromLocation, toLocation) {
 }
 
 // Main create figure function
-function createFigureFunction(origin, figureType, centerLocation, block, size, mode = "solid", rotation = 0, height = null) {
+function createFigureFunction(origin, figureType, centerLocation, block, size, mode = 'solid', rotation = 0, height = null) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Create figure requires a player source");
+                console.log('Create figure requires a player source');
                 return;
             }
 
             // Validate figure type
-            const validFigures = ["cube", "sphere", "cylinder", "pyramid"];
+            const validFigures = ['cube', 'sphere', 'cylinder', 'pyramid'];
             if (!validFigures.includes((figureType?.toLowerCase?.() ?? figureType).toLowerCase())) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid figure type! Use: ${validFigures.join(", ")}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid figure type! Use: ${validFigures.join(', ')}`);
                 return;
             }
 
             // Validate mode
-            const validModes = ["solid", "hollow", "keep"];
+            const validModes = ['solid', 'hollow', 'keep'];
             if (!validModes.includes(mode.toLowerCase())) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid mode! Use: ${validModes.join(", ")}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid mode! Use: ${validModes.join(', ')}`);
                 return;
             }
 
             // Validate size
             if (size < 1 || size > 50) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cSize must be between 1 and 50!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cSize must be between 1 and 50!');
                 return;
             }
 
@@ -4573,7 +4834,7 @@ function createFigureFunction(origin, figureType, centerLocation, block, size, m
 
             // Validate height
             if (height < 1 || height > 100) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cHeight must be between 1 and 100!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cHeight must be between 1 and 100!');
                 return;
             }
 
@@ -4581,7 +4842,7 @@ function createFigureFunction(origin, figureType, centerLocation, block, size, m
             try {
                 BlockPermutation.resolve(block.id);
             } catch (e) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid block type: ${block?.id}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid block type: ${block?.id}`);
                 return;
             }
 
@@ -4590,23 +4851,23 @@ function createFigureFunction(origin, figureType, centerLocation, block, size, m
             const estimatedBlocks = estimateFigureBlocks(figureTypeStr, size, height, mode.toLowerCase());
 
             if (estimatedBlocks > 100000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFigure too large! Estimated ${estimatedBlocks.toLocaleString()} blocks. Maximum is 100,000.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFigure too large! Estimated ${estimatedBlocks.toLocaleString()} blocks. Maximum is 100,000.`);
                 return;
             }
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aCreating ${figureTypeStr} figure...`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Size: ${size}, Mode: ${mode.toLowerCase()}, Rotation: ${rotation}°`);
-            if (["cylinder", "pyramid"].includes(figureTypeStr)) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Height: ${height}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aCreating ${figureTypeStr} figure...`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Size: ${size}, Mode: ${mode.toLowerCase()}, Rotation: ${rotation}°`);
+            if (['cylinder', 'pyramid'].includes(figureTypeStr)) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Height: ${height}`);
             }
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Estimated blocks: ${estimatedBlocks.toLocaleString()}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Estimated blocks: ${estimatedBlocks.toLocaleString()}`);
 
             // Start async figure creation
             createFigureAsync(player, figureTypeStr, centerLocation, block.id, size, mode.toLowerCase(), rotation, height);
         } catch (e) {
-            console.log("Failed to create figure: " + e);
+            console.log('Failed to create figure: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create figure: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create figure: ${e.message || e}`);
             }
         }
     });
@@ -4619,40 +4880,40 @@ function estimateFigureBlocks(figureType, size, height, mode) {
     let estimate = 0;
 
     switch (figureType) {
-        case "cube":
-            if (mode === "solid") {
+        case 'cube':
+            if (mode === 'solid') {
                 estimate = (size * 2 + 1) ** 3;
-            } else if (mode === "hollow") {
+            } else if (mode === 'hollow') {
                 const outer = (size * 2 + 1) ** 3;
                 const inner = Math.max(0, (size * 2 - 1) ** 3);
                 estimate = outer - inner;
             }
             break;
 
-        case "sphere":
-            if (mode === "solid") {
+        case 'sphere':
+            if (mode === 'solid') {
                 estimate = Math.floor((4 / 3) * Math.PI * size ** 3);
-            } else if (mode === "hollow") {
+            } else if (mode === 'hollow') {
                 const outer = Math.floor((4 / 3) * Math.PI * size ** 3);
                 const inner = Math.floor((4 / 3) * Math.PI * Math.max(0, size - 1) ** 3);
                 estimate = outer - inner;
             }
             break;
 
-        case "cylinder":
-            if (mode === "solid") {
+        case 'cylinder':
+            if (mode === 'solid') {
                 estimate = Math.floor(Math.PI * size ** 2 * height);
-            } else if (mode === "hollow") {
+            } else if (mode === 'hollow') {
                 const outer = Math.floor(Math.PI * size ** 2 * height);
                 const inner = Math.floor(Math.PI * Math.max(0, size - 1) ** 2 * height);
                 estimate = outer - inner;
             }
             break;
 
-        case "pyramid":
-            if (mode === "solid") {
+        case 'pyramid':
+            if (mode === 'solid') {
                 estimate = Math.floor((size ** 2 * height) / 3);
-            } else if (mode === "hollow") {
+            } else if (mode === 'hollow') {
                 estimate = Math.floor(size ** 2 * 0.3); // Rough estimate for hollow pyramid
             }
             break;
@@ -4693,11 +4954,11 @@ function createFigureAsync(player, figureType, centerLocation, blockType, size, 
     figureState.positions = generateFigurePositions(figureState);
 
     if (figureState.positions.length === 0) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo valid positions generated for figure!");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo valid positions generated for figure!');
         return;
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Building ${figureState.positions.length} blocks...`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Building ${figureState.positions.length} blocks...`);
 
     // Start building
     figureState.intervalId = system.runInterval(() => {
@@ -4708,13 +4969,13 @@ function createFigureAsync(player, figureType, centerLocation, blockType, size, 
 // Generate positions for different figure types
 function generateFigurePositions(figureState) {
     switch (figureState.figureType) {
-        case "cube":
+        case 'cube':
             return generateCubePositions2(figureState);
-        case "sphere":
+        case 'sphere':
             return generateSpherePositions2(figureState);
-        case "cylinder":
+        case 'cylinder':
             return generateCylinderPositions2(figureState);
-        case "pyramid":
+        case 'pyramid':
             return generatePyramidPositions2(figureState);
         default:
             return [];
@@ -4731,9 +4992,9 @@ function generateCubePositions2(figureState) {
             for (let z = -size; z <= size; z++) {
                 let shouldPlace = false;
 
-                if (mode === "solid") {
+                if (mode === 'solid') {
                     shouldPlace = true;
-                } else if (mode === "hollow") {
+                } else if (mode === 'hollow') {
                     // Only place on faces of the cube
                     shouldPlace = Math.abs(x) === size || Math.abs(y) === size || Math.abs(z) === size;
                 }
@@ -4764,9 +5025,9 @@ function generateSpherePositions2(figureState) {
                 const distance = Math.sqrt(x * x + y * y + z * z);
                 let shouldPlace = false;
 
-                if (mode === "solid") {
+                if (mode === 'solid') {
                     shouldPlace = distance <= size;
-                } else if (mode === "hollow") {
+                } else if (mode === 'hollow') {
                     shouldPlace = distance <= size && distance > size - 1;
                 }
 
@@ -4796,9 +5057,9 @@ function generateCylinderPositions2(figureState) {
             const distance = Math.sqrt(x * x + z * z);
             let shouldPlaceXZ = false;
 
-            if (mode === "solid") {
+            if (mode === 'solid') {
                 shouldPlaceXZ = distance <= size;
-            } else if (mode === "hollow") {
+            } else if (mode === 'hollow') {
                 shouldPlaceXZ = distance <= size && distance > size - 1;
             }
 
@@ -4806,7 +5067,7 @@ function generateCylinderPositions2(figureState) {
                 for (let y = -halfHeight; y <= halfHeight; y++) {
                     let shouldPlace = true;
 
-                    if (mode === "hollow" && Math.abs(y) < halfHeight) {
+                    if (mode === 'hollow' && Math.abs(y) < halfHeight) {
                         // For hollow cylinder, only place on top/bottom circles or outer ring
                         shouldPlace = distance > size - 1 || Math.abs(y) === halfHeight;
                     }
@@ -4843,9 +5104,9 @@ function generatePyramidPositions2(figureState) {
             for (let z = -currentSize; z <= currentSize; z++) {
                 let shouldPlace = false;
 
-                if (mode === "solid") {
+                if (mode === 'solid') {
                     shouldPlace = true;
-                } else if (mode === "hollow") {
+                } else if (mode === 'hollow') {
                     // Only place on the edges or top
                     shouldPlace = Math.abs(x) === currentSize || Math.abs(z) === currentSize || y === height - 1 || y === 0;
                 }
@@ -4891,10 +5152,10 @@ function processFigureBatch(figureState) {
         const position = figureState.positions[figureState.currentIndex];
 
         try {
-            if (figureState.mode === "keep") {
+            if (figureState.mode === 'keep') {
                 // Only place if current block is air
                 const currentBlock = figureState.dimension.getBlock(position);
-                if (currentBlock.typeId === "minecraft:air") {
+                if (currentBlock.typeId === 'minecraft:air') {
                     figureState.dimension.setBlockPermutation(position, figureState.blockPermutation);
                     figureState.blocksPlaced++;
                 } else {
@@ -4933,47 +5194,47 @@ function finishFigureCreation(figureState) {
     const elapsed = Math.round((Date.now() - figureState.startTime) / 1000);
     const rate = elapsed > 0 ? Math.round(figureState.blocksPlaced / elapsed) : 0;
 
-    if (!figureState.player.hasTag("dontshowcommandlogs")) figureState.player.sendMessage(`§aFigure creation complete!`);
-    if (!figureState.player.hasTag("dontshowcommandlogs")) figureState.player.sendMessage(`§7Figure: ${figureState.figureType} (${figureState.mode} mode)`);
-    if (!figureState.player.hasTag("dontshowcommandlogs")) figureState.player.sendMessage(`§7Size: ${figureState.size}, Rotation: ${figureState.rotation}°`);
-    if (["cylinder", "pyramid"].includes(figureState.figureType)) {
-        if (!figureState.player.hasTag("dontshowcommandlogs")) figureState.player.sendMessage(`§7Height: ${figureState.height}`);
+    if (!figureState.player.hasTag('dontshowcommandlogs')) figureState.player.sendMessage(`§aFigure creation complete!`);
+    if (!figureState.player.hasTag('dontshowcommandlogs')) figureState.player.sendMessage(`§7Figure: ${figureState.figureType} (${figureState.mode} mode)`);
+    if (!figureState.player.hasTag('dontshowcommandlogs')) figureState.player.sendMessage(`§7Size: ${figureState.size}, Rotation: ${figureState.rotation}°`);
+    if (['cylinder', 'pyramid'].includes(figureState.figureType)) {
+        if (!figureState.player.hasTag('dontshowcommandlogs')) figureState.player.sendMessage(`§7Height: ${figureState.height}`);
     }
-    if (!figureState.player.hasTag("dontshowcommandlogs"))
+    if (!figureState.player.hasTag('dontshowcommandlogs'))
         figureState.player.sendMessage(`§7Blocks placed: ${figureState.blocksPlaced}, Skipped: ${figureState.blocksSkipped}, Failed: ${figureState.blocksFailed}`);
-    if (!figureState.player.hasTag("dontshowcommandlogs")) figureState.player.sendMessage(`§7Time: ${elapsed}s (${rate} blocks/s)`);
+    if (!figureState.player.hasTag('dontshowcommandlogs')) figureState.player.sendMessage(`§7Time: ${elapsed}s (${rate} blocks/s)`);
 
     system.clearRun(figureState.intervalId);
 }
 
 // Main gamemode function
-function gamemodeFunction(origin, gamemode = "creative", targets = [origin.sourceEntity]) {
+function gamemodeFunction(origin, gamemode = 'creative', targets = [origin.sourceEntity]) {
     system.run(() => {
         try {
             if (!targets || targets.length === 0) {
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cNo valid targets specified!");
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cNo valid targets specified!');
                 }
                 return;
             }
 
             // Map gamemode names to Minecraft gamemode IDs
             const gamemodeMap = {
-                survival: "s",
-                creative: "c",
-                adventure: "a",
-                spectator: "spectator",
-                s: "s",
-                c: "c",
-                a: "a",
-                sp: "spectator",
+                survival: 's',
+                creative: 'c',
+                adventure: 'a',
+                spectator: 'spectator',
+                s: 's',
+                c: 'c',
+                a: 'a',
+                sp: 'spectator',
             };
 
             const gamemodeId = gamemodeMap[gamemode.toLowerCase()];
             if (!gamemodeId) {
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cInvalid gamemode: ${gamemode}`);
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§7Valid modes: survival, creative, adventure, spectator");
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cInvalid gamemode: ${gamemode}`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§7Valid modes: survival, creative, adventure, spectator');
                 }
                 return;
             }
@@ -4984,7 +5245,7 @@ function gamemodeFunction(origin, gamemode = "creative", targets = [origin.sourc
             // Apply gamemode to all targets
             for (const target of targets) {
                 try {
-                    if (target.typeId !== "minecraft:player") {
+                    if (target.typeId !== 'minecraft:player') {
                         failCount++;
                         continue;
                     }
@@ -4995,7 +5256,7 @@ function gamemodeFunction(origin, gamemode = "creative", targets = [origin.sourc
 
                     // Send confirmation to the target
                     const modeDisplayName = gamemode.charAt(0).toUpperCase() + gamemode.slice(1);
-                    if (!target.hasTag("dontshowcommandlogs")) target.sendMessage(`§aGamemode set to §e${modeDisplayName}`);
+                    if (!target.hasTag('dontshowcommandlogs')) target.sendMessage(`§aGamemode set to §e${modeDisplayName}`);
                 } catch (e) {
                     console.log(`Failed to set gamemode for ${target.name}: ${e}`);
                     failCount++;
@@ -5007,18 +5268,18 @@ function gamemodeFunction(origin, gamemode = "creative", targets = [origin.sourc
                 const modeDisplayName = gamemode.charAt(0).toUpperCase() + gamemode.slice(1);
 
                 if (successCount > 0) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs"))
-                        origin.sourceEntity.sendMessage(`§aSet gamemode to §e${modeDisplayName} §afor §f${successCount} §aplayer${successCount > 1 ? "s" : ""}`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs'))
+                        origin.sourceEntity.sendMessage(`§aSet gamemode to §e${modeDisplayName} §afor §f${successCount} §aplayer${successCount > 1 ? 's' : ''}`);
                 }
 
                 if (failCount > 0) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to change gamemode for §f${failCount} §ctarget${failCount > 1 ? "s" : ""}`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to change gamemode for §f${failCount} §ctarget${failCount > 1 ? 's' : ''}`);
                 }
             }
         } catch (e) {
-            console.log("Failed to change gamemode: " + e);
+            console.log('Failed to change gamemode: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to change gamemode: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to change gamemode: ${e.message || e}`);
             }
         }
     });
@@ -5027,12 +5288,12 @@ function gamemodeFunction(origin, gamemode = "creative", targets = [origin.sourc
 }
 
 // Main boost function
-function boostFunction(origin, power, direction = "up", targets = [origin.sourceEntity], location = { x: null, y: null, z: null }) {
+function boostFunction(origin, power, direction = 'up', targets = [origin.sourceEntity], location = { x: null, y: null, z: null }) {
     system.run(() => {
         try {
             if (!targets || targets.length === 0) {
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cNo valid targets specified!");
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cNo valid targets specified!');
                 }
                 return;
             }
@@ -5040,7 +5301,7 @@ function boostFunction(origin, power, direction = "up", targets = [origin.source
             // Validate power
             if (power < 0.1 || power > 100.0) {
                 if (origin.sourceEntity) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§cPower must be between 0.1 and 10.0!");
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§cPower must be between 0.1 and 10.0!');
                 }
                 return;
             }
@@ -5076,14 +5337,14 @@ function boostFunction(origin, power, direction = "up", targets = [origin.source
                     // Visual/audio feedback
                     try {
                         // Spawn boost particles
-                        target.dimension.spawnParticle("minecraft:huge_explosion_emitter", {
+                        target.dimension.spawnParticle('minecraft:huge_explosion_emitter', {
                             x: target.location.x,
                             y: target.location.y + 1,
                             z: target.location.z,
                         });
 
                         // Play boost sound
-                        target.dimension.playSound("firework.launch", target.location, {
+                        target.dimension.playSound('firework.launch', target.location, {
                             volume: 0.5,
                             pitch: 1.2,
                         });
@@ -5092,9 +5353,9 @@ function boostFunction(origin, power, direction = "up", targets = [origin.source
                     }
 
                     // Send feedback to boosted entity (if it's a player)
-                    if (target.typeId === "minecraft:player") {
-                        const directionText = location.x !== null ? "custom direction" : direction;
-                        if (!target.hasTag("dontshowcommandlogs")) target.sendMessage(`§aYou were boosted ${directionText} with power ${power}!`);
+                    if (target.typeId === 'minecraft:player') {
+                        const directionText = location.x !== null ? 'custom direction' : direction;
+                        if (!target.hasTag('dontshowcommandlogs')) target.sendMessage(`§aYou were boosted ${directionText} with power ${power}!`);
                     }
                 } catch (e) {
                     console.log(`Failed to boost ${target.typeId}: ${e}`);
@@ -5107,18 +5368,18 @@ function boostFunction(origin, power, direction = "up", targets = [origin.source
                 const directionText = location.x !== null ? `custom (${location.x.toFixed(1)}, ${location.y.toFixed(1)}, ${location.z.toFixed(1)})` : direction;
 
                 if (successCount > 0) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs"))
-                        origin.sourceEntity.sendMessage(`§aBoosted §f${successCount} §aentit${successCount > 1 ? "ies" : "y"} §a${directionText} with power §f${power}`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs'))
+                        origin.sourceEntity.sendMessage(`§aBoosted §f${successCount} §aentit${successCount > 1 ? 'ies' : 'y'} §a${directionText} with power §f${power}`);
                 }
 
                 if (failCount > 0) {
-                    if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to boost §f${failCount} §centit${failCount > 1 ? "ies" : "y"}`);
+                    if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to boost §f${failCount} §centit${failCount > 1 ? 'ies' : 'y'}`);
                 }
             }
         } catch (e) {
-            console.log("Failed to execute boost command: " + e);
+            console.log('Failed to execute boost command: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to boost: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to boost: ${e.message || e}`);
             }
         }
     });
@@ -5131,15 +5392,15 @@ function calculateDirectionVector(player, direction, power) {
     let vector = { x: 0, y: 0, z: 0 };
 
     switch (direction.toLowerCase()) {
-        case "up":
+        case 'up':
             vector = { x: 0, y: power, z: 0 };
             break;
 
-        case "down":
+        case 'down':
             vector = { x: 0, y: -power, z: 0 };
             break;
 
-        case "forward":
+        case 'forward':
             if (player) {
                 const rotation = player.getRotation();
                 const yawRadians = (rotation.y * Math.PI) / 180;
@@ -5153,7 +5414,7 @@ function calculateDirectionVector(player, direction, power) {
             }
             break;
 
-        case "backward":
+        case 'backward':
             if (player) {
                 const rotation = player.getRotation();
                 const yawRadians = (rotation.y * Math.PI) / 180;
@@ -5167,7 +5428,7 @@ function calculateDirectionVector(player, direction, power) {
             }
             break;
 
-        case "left":
+        case 'left':
             if (player) {
                 const rotation = player.getRotation();
                 const yawRadians = (rotation.y * Math.PI) / 180;
@@ -5181,7 +5442,7 @@ function calculateDirectionVector(player, direction, power) {
             }
             break;
 
-        case "right":
+        case 'right':
             if (player) {
                 const rotation = player.getRotation();
                 const yawRadians = (rotation.y * Math.PI) / 180;
@@ -5206,14 +5467,14 @@ function removeFunction(origin, entities, log = false) {
     system.run(() => {
         let logEntity = [];
         for (const entity of entities) {
-            if (entity.typeId == "minecraft:player") continue;
+            if (entity.typeId == 'minecraft:player') continue;
             logEntity.push(entity.typeId);
             entity.remove();
         }
         if (log) {
-            if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§2${logEntity.length} entities was removed.\n§eEntities:\n${logEntity.join(", ")}`);
+            if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§2${logEntity.length} entities was removed.\n§eEntities:\n${logEntity.join(', ')}`);
         } else {
-            if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage("§2Removed entities: " + logEntity.length);
+            if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage('§2Removed entities: ' + logEntity.length);
         }
     });
 
@@ -5228,24 +5489,24 @@ function surfaceFunction(origin, mode, centerPosition, radius, blockType, maxH =
             const maxHeight = centerPosition.y + maxH;
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Surface command requires a player source");
+                console.log('Surface command requires a player source');
                 return;
             }
 
             // Validate radius
             if (radius < 1 || radius > 100) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cRadius must be between 1 and 100!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cRadius must be between 1 and 100!');
                 return;
             }
 
             // Validate height range
             if (minHeight > maxHeight) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cMin height cannot be greater than max height!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cMin height cannot be greater than max height!');
                 return;
             }
 
             if (maxHeight > 320 || minHeight < -64) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cHeight must be between -64 and 320!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cHeight must be between -64 and 320!');
                 return;
             }
 
@@ -5255,7 +5516,7 @@ function surfaceFunction(origin, mode, centerPosition, radius, blockType, maxH =
             if (useMainhand) {
                 const blocks = getMainhandBlocks(player);
                 if (!blocks || blocks.length === 0) {
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo valid blocks in mainhand! Hold a block or multi-block item.");
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo valid blocks in mainhand! Hold a block or multi-block item.');
                     return;
                 }
                 blocksToUse = blocks;
@@ -5265,36 +5526,36 @@ function surfaceFunction(origin, mode, centerPosition, radius, blockType, maxH =
                     BlockPermutation.resolve(blockType.id);
                     blocksToUse = [blockType.id];
                 } catch (e) {
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid block type: ${blockType.id}`);
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid block type: ${blockType.id}`);
                     return;
                 }
             }
 
             // Calculate estimated area
-            const estimatedArea = mode === "circle" ? Math.floor(Math.PI * radius * radius) : (radius * 2 + 1) * (radius * 2 + 1);
+            const estimatedArea = mode === 'circle' ? Math.floor(Math.PI * radius * radius) : (radius * 2 + 1) * (radius * 2 + 1);
 
             if (estimatedArea > 500000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cSurface area too large! ${estimatedArea.toLocaleString()} positions. Maximum is 500,000.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cSurface area too large! ${estimatedArea.toLocaleString()} positions. Maximum is 500,000.`);
                 return;
             }
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStarting surface creation...`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Mode: ${mode}, Radius: ${radius}, Area: ~${estimatedArea.toLocaleString()} positions`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Height range: ${minHeight} to ${maxHeight}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Replace ${replaceBelow ? "below" : "at"} surface level`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStarting surface creation...`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Mode: ${mode}, Radius: ${radius}, Area: ~${estimatedArea.toLocaleString()} positions`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Height range: ${minHeight} to ${maxHeight}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Replace ${replaceBelow ? 'below' : 'at'} surface level`);
 
             if (useMainhand) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Using ${blocksToUse.length} block type${blocksToUse.length > 1 ? "s" : ""} from mainhand`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Using ${blocksToUse.length} block type${blocksToUse.length > 1 ? 's' : ''} from mainhand`);
             } else {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Using block: ${blockType}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Using block: ${blockType}`);
             }
 
             // Start async surface creation
             createSurfaceAsync(player, mode, centerPosition, radius, blocksToUse, maxHeight, minHeight, replaceBelow);
         } catch (e) {
-            console.log("Failed to create surface: " + e);
+            console.log('Failed to create surface: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create surface: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create surface: ${e.message || e}`);
             }
         }
     });
@@ -5304,24 +5565,24 @@ function surfaceFunction(origin, mode, centerPosition, radius, blockType, maxH =
 
 // Get blocks from player's mainhand
 function getMainhandBlocks(player) {
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const item = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
     if (!item) return null;
 
     // Check if it's a multi-block item
     const loreArray = item.getLore();
-    if (loreArray && loreArray.some((lore) => lore === "§6Multi-Block Item")) {
+    if (loreArray && loreArray.some((lore) => lore === '§6Multi-Block Item')) {
         const blocks = [];
         let foundBlocksSection = false;
 
         for (const lore of loreArray) {
-            if (lore === "§7Blocks:") {
+            if (lore === '§7Blocks:') {
                 foundBlocksSection = true;
                 continue;
             }
-            if (foundBlocksSection && lore.startsWith("§8- ")) {
-                const blockId = lore.replace("§8- ", "");
+            if (foundBlocksSection && lore.startsWith('§8- ')) {
+                const blockId = lore.replace('§8- ', '');
                 blocks.push(blockId);
             }
         }
@@ -5364,11 +5625,11 @@ function createSurfaceAsync(player, mode, centerPosition, radius, blocksToUse, m
     surfaceState.positions = generateSurfacePositions(surfaceState);
 
     if (surfaceState.positions.length === 0) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo valid positions found for surface creation!");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo valid positions found for surface creation!');
         return;
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Processing ${surfaceState.positions.length} positions...`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Processing ${surfaceState.positions.length} positions...`);
 
     // Start processing
     surfaceState.intervalId = system.runInterval(() => {
@@ -5381,7 +5642,7 @@ function generateSurfacePositions(surfaceState) {
     const positions = [];
     const { mode, centerPosition, radius } = surfaceState;
 
-    if (mode === "circle") {
+    if (mode === 'circle') {
         // Generate circle positions
         for (let x = -radius; x <= radius; x++) {
             for (let z = -radius; z <= radius; z++) {
@@ -5394,7 +5655,7 @@ function generateSurfacePositions(surfaceState) {
                 }
             }
         }
-    } else if (mode === "square") {
+    } else if (mode === 'square') {
         // Generate square positions
         for (let x = -radius; x <= radius; x++) {
             for (let z = -radius; z <= radius; z++) {
@@ -5465,7 +5726,7 @@ function findSurfaceLevel(surfaceState, x, z) {
     for (let y = maxHeight; y >= minHeight; y--) {
         try {
             const block = dimension.getBlock({ x, y, z });
-            if (block.typeId !== "minecraft:air") {
+            if (block.typeId !== 'minecraft:air') {
                 return { found: true, y: y };
             }
         } catch (e) {
@@ -5482,17 +5743,17 @@ function finishSurfaceCreation(surfaceState) {
     const elapsed = Math.round((Date.now() - surfaceState.startTime) / 1000);
     const rate = elapsed > 0 ? Math.round(surfaceState.positionsProcessed / elapsed) : 0;
 
-    if (!surfaceState.player.hasTag("dontshowcommandlogs")) surfaceState.player.sendMessage(`§aSurface creation complete!`);
-    if (!surfaceState.player.hasTag("dontshowcommandlogs")) surfaceState.player.sendMessage(`§7Mode: ${surfaceState.mode}, Radius: ${surfaceState.radius}`);
-    if (!surfaceState.player.hasTag("dontshowcommandlogs")) surfaceState.player.sendMessage(`§7Positions processed: ${surfaceState.positionsProcessed.toLocaleString()}`);
-    if (!surfaceState.player.hasTag("dontshowcommandlogs"))
+    if (!surfaceState.player.hasTag('dontshowcommandlogs')) surfaceState.player.sendMessage(`§aSurface creation complete!`);
+    if (!surfaceState.player.hasTag('dontshowcommandlogs')) surfaceState.player.sendMessage(`§7Mode: ${surfaceState.mode}, Radius: ${surfaceState.radius}`);
+    if (!surfaceState.player.hasTag('dontshowcommandlogs')) surfaceState.player.sendMessage(`§7Positions processed: ${surfaceState.positionsProcessed.toLocaleString()}`);
+    if (!surfaceState.player.hasTag('dontshowcommandlogs'))
         surfaceState.player.sendMessage(`§7Blocks placed: ${surfaceState.blocksPlaced}, Skipped: ${surfaceState.positionsSkipped}, Failed: ${surfaceState.positionsFailed}`);
-    if (!surfaceState.player.hasTag("dontshowcommandlogs")) surfaceState.player.sendMessage(`§7Time: ${elapsed}s (${rate} positions/s)`);
+    if (!surfaceState.player.hasTag('dontshowcommandlogs')) surfaceState.player.sendMessage(`§7Time: ${elapsed}s (${rate} positions/s)`);
 
     if (surfaceState.blocksToUse.length > 1) {
-        if (!surfaceState.player.hasTag("dontshowcommandlogs")) surfaceState.player.sendMessage(`§7Used ${surfaceState.blocksToUse.length} different block types`);
+        if (!surfaceState.player.hasTag('dontshowcommandlogs')) surfaceState.player.sendMessage(`§7Used ${surfaceState.blocksToUse.length} different block types`);
     } else {
-        if (!surfaceState.player.hasTag("dontshowcommandlogs")) surfaceState.player.sendMessage(`§7Block used: ${surfaceState.blocksToUse[0]}`);
+        if (!surfaceState.player.hasTag('dontshowcommandlogs')) surfaceState.player.sendMessage(`§7Block used: ${surfaceState.blocksToUse[0]}`);
     }
 
     system.clearRun(surfaceState.intervalId);
@@ -5504,32 +5765,32 @@ function plainFunction(origin, centerPosition, radius, mode, maxHeight = 320) {
         try {
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Plain command requires a player source");
+                console.log('Plain command requires a player source');
                 return;
             }
 
             // Validate radius
             if (radius < 1 || radius > 100) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cRadius must be between 1 and 100!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cRadius must be between 1 and 100!');
                 return;
             }
 
             // Validate max height
             if (maxHeight < centerPosition.y || maxHeight > 320) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cMax height must be between ${centerPosition.y} and 320!`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cMax height must be between ${centerPosition.y} and 320!`);
                 return;
             }
 
             // Calculate estimated positions
             let estimatedPositions = 0;
             switch (mode) {
-                case "circle":
+                case 'circle':
                     estimatedPositions = Math.floor(Math.PI * radius * radius);
                     break;
-                case "square":
+                case 'square':
                     estimatedPositions = (radius * 2 + 1) * (radius * 2 + 1);
                     break;
-                case "triangle":
+                case 'triangle':
                     estimatedPositions = Math.floor((radius * radius * Math.PI) / 2);
                     break;
             }
@@ -5539,26 +5800,26 @@ function plainFunction(origin, centerPosition, radius, mode, maxHeight = 320) {
             const estimatedBlocks = estimatedPositions * avgHeight;
 
             if (estimatedBlocks > 1000000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cPlain area too large! Estimated ${estimatedBlocks.toLocaleString()} blocks. Maximum is 1000,000.`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Try smaller radius or lower max height.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cPlain area too large! Estimated ${estimatedBlocks.toLocaleString()} blocks. Maximum is 1000,000.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Try smaller radius or lower max height.');
                 return;
             }
 
             if (estimatedBlocks > 100000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§eWarning: Large plain operation! Estimated ${estimatedBlocks.toLocaleString()} blocks to remove.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§eWarning: Large plain operation! Estimated ${estimatedBlocks.toLocaleString()} blocks to remove.`);
             }
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStarting plain creation...`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Mode: ${mode}, Radius: ${radius}, Max height: ${maxHeight}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Center height: ${centerPosition.y}, Estimated positions: ${estimatedPositions.toLocaleString()}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7This will remove all blocks above ground level in the specified area.`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStarting plain creation...`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Mode: ${mode}, Radius: ${radius}, Max height: ${maxHeight}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Center height: ${centerPosition.y}, Estimated positions: ${estimatedPositions.toLocaleString()}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7This will remove all blocks above ground level in the specified area.`);
 
             // Start async plain creation
             createPlainAsync(player, centerPosition, radius, mode, maxHeight);
         } catch (e) {
-            console.log("Failed to create plain: " + e);
+            console.log('Failed to create plain: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create plain: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create plain: ${e.message || e}`);
             }
         }
     });
@@ -5595,11 +5856,11 @@ function createPlainAsync(player, centerPosition, radius, mode, maxHeight) {
     plainState.positions = generatePlainPositions(plainState);
 
     if (plainState.positions.length === 0) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo valid positions found for plain creation!");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo valid positions found for plain creation!');
         return;
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Processing ${plainState.positions.length} positions...`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Processing ${plainState.positions.length} positions...`);
 
     // Start processing
     plainState.intervalId = system.runInterval(() => {
@@ -5613,7 +5874,7 @@ function generatePlainPositions(plainState) {
     const { mode, centerPosition, radius } = plainState;
 
     switch (mode) {
-        case "circle":
+        case 'circle':
             // Generate circle positions
             for (let x = -radius; x <= radius; x++) {
                 for (let z = -radius; z <= radius; z++) {
@@ -5628,7 +5889,7 @@ function generatePlainPositions(plainState) {
             }
             break;
 
-        case "square":
+        case 'square':
             // Generate square positions
             for (let x = -radius; x <= radius; x++) {
                 for (let z = -radius; z <= radius; z++) {
@@ -5640,7 +5901,7 @@ function generatePlainPositions(plainState) {
             }
             break;
 
-        case "triangle":
+        case 'triangle':
             // Generate triangle positions (equilateral triangle pointing north)
             for (let x = -radius; x <= radius; x++) {
                 for (let z = -radius; z <= radius; z++) {
@@ -5716,7 +5977,7 @@ function processPlainBatch(plainState) {
         const rate = elapsed > 0 ? Math.round(plainState.blocksRemoved / elapsed) : 0;
 
         plainState.player.sendMessage(
-            `§7Progress: ${progress}% (${plainState.currentIndex}/${plainState.positions.length}) - ${plainState.blocksRemoved.toLocaleString()} removed - ${rate}/s - ${elapsed}s`
+            `§7Progress: ${progress}% (${plainState.currentIndex}/${plainState.positions.length}) - ${plainState.blocksRemoved.toLocaleString()} removed - ${rate}/s - ${elapsed}s`,
         );
     }
 
@@ -5741,8 +6002,8 @@ function processPlainColumn(plainState, x, z) {
             const block = plainState.dimension.getBlock(blockPos);
 
             // Only remove if it's not already air
-            if (block.typeId !== "minecraft:air") {
-                plainState.dimension.setBlockPermutation(blockPos, BlockPermutation.resolve("minecraft:air"));
+            if (block.typeId !== 'minecraft:air') {
+                plainState.dimension.setBlockPermutation(blockPos, BlockPermutation.resolve('minecraft:air'));
                 removed++;
             }
         } catch (e) {
@@ -5762,14 +6023,14 @@ function finishPlainCreation(plainState) {
     const seconds = elapsed % 60;
     const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 
-    if (!plainState.player.hasTag("dontshowcommandlogs")) plainState.player.sendMessage(`§aPlain creation complete!`);
-    if (!plainState.player.hasTag("dontshowcommandlogs")) plainState.player.sendMessage(`§7Mode: ${plainState.mode}, Radius: ${plainState.radius}, Max height: ${plainState.maxHeight}`);
-    if (!plainState.player.hasTag("dontshowcommandlogs"))
+    if (!plainState.player.hasTag('dontshowcommandlogs')) plainState.player.sendMessage(`§aPlain creation complete!`);
+    if (!plainState.player.hasTag('dontshowcommandlogs')) plainState.player.sendMessage(`§7Mode: ${plainState.mode}, Radius: ${plainState.radius}, Max height: ${plainState.maxHeight}`);
+    if (!plainState.player.hasTag('dontshowcommandlogs'))
         plainState.player.sendMessage(`§7Positions processed: ${plainState.positionsProcessed.toLocaleString()}, Skipped: ${plainState.positionsSkipped.toLocaleString()}`);
-    if (!plainState.player.hasTag("dontshowcommandlogs"))
+    if (!plainState.player.hasTag('dontshowcommandlogs'))
         plainState.player.sendMessage(`§7Blocks removed: ${plainState.blocksRemoved.toLocaleString()}, Failed: ${plainState.blocksFailed.toLocaleString()}`);
-    if (!plainState.player.hasTag("dontshowcommandlogs")) plainState.player.sendMessage(`§7Time: ${timeStr} (${rate.toLocaleString()} blocks/s)`);
-    if (!plainState.player.hasTag("dontshowcommandlogs")) plainState.player.sendMessage(`§7Area cleared above height ${plainState.centerPosition.y}`);
+    if (!plainState.player.hasTag('dontshowcommandlogs')) plainState.player.sendMessage(`§7Time: ${timeStr} (${rate.toLocaleString()} blocks/s)`);
+    if (!plainState.player.hasTag('dontshowcommandlogs')) plainState.player.sendMessage(`§7Area cleared above height ${plainState.centerPosition.y}`);
 
     system.clearRun(plainState.intervalId);
 }
@@ -5780,52 +6041,52 @@ function getWorldInfoFunction(origin, infoType) {
         try {
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Get world info requires a player source");
+                console.log('Get world info requires a player source');
                 return;
             }
 
             switch (infoType.toLowerCase()) {
-                case "time":
+                case 'time':
                     showTimeInfo(player);
                     break;
-                case "day":
+                case 'day':
                     showDayInfo(player);
                     break;
-                case "moonphase":
+                case 'moonphase':
                     showMoonPhaseInfo(player);
                     break;
-                case "players":
+                case 'players':
                     showPlayersInfo(player);
                     break;
-                case "difficulty":
+                case 'difficulty':
                     showDifficultyInfo(player);
                     break;
-                case "absolutetime":
+                case 'absolutetime':
                     showAbsoluteTimeInfo(player);
                     break;
-                case "weather":
+                case 'weather':
                     showWeatherInfo(player);
                     break;
-                case "spawn":
+                case 'spawn':
                     showSpawnInfo(player);
                     break;
-                case "entities":
+                case 'entities':
                     showEntitiesInfo(player);
                     break;
-                case "dimensions":
+                case 'dimensions':
                     showDimensionsInfo(player);
                     break;
-                case "all":
+                case 'all':
                     showAllInfo(player);
                     break;
                 default:
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cInvalid info type: ${infoType}`);
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cInvalid info type: ${infoType}`);
                     break;
             }
         } catch (e) {
-            console.log("Failed to get world info: " + e);
+            console.log('Failed to get world info: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to get world info: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to get world info: ${e.message || e}`);
             }
         }
     });
@@ -5840,14 +6101,14 @@ function showTimeInfo(player) {
         const timeFormatted = formatMinecraftTime(timeOfDay);
         const timePhase = getTimePhase(timeOfDay);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Time Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Time of Day: §f${timeOfDay} ticks`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Formatted Time: §f${timeFormatted}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Time Phase: §f${timePhase}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Progress to Night: §f${Math.round((timeOfDay / 24000) * 100)}%`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Time Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Time of Day: §f${timeOfDay} ticks`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Formatted Time: §f${timeFormatted}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Time Phase: §f${timePhase}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Progress to Night: §f${Math.round((timeOfDay / 24000) * 100)}%`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get time information");
-        console.log("Time info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get time information');
+        console.log('Time info error: ' + e);
     }
 }
 
@@ -5858,13 +6119,13 @@ function showDayInfo(player) {
         const currentDay = Math.floor(absoluteTime / 24000) + 1;
         const timeOfDay = world.getTimeOfDay();
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Day Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Current Day: §f${currentDay}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Day Progress: §f${Math.round((timeOfDay / 24000) * 100)}%`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Days Since World Creation: §f${currentDay - 1}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Day Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Current Day: §f${currentDay}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Day Progress: §f${Math.round((timeOfDay / 24000) * 100)}%`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Days Since World Creation: §f${currentDay - 1}`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get day information");
-        console.log("Day info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get day information');
+        console.log('Day info error: ' + e);
     }
 }
 
@@ -5875,14 +6136,14 @@ function showMoonPhaseInfo(player) {
         const moonPhaseName = getMoonPhaseName(moonPhase);
         const moonPhaseDescription = getMoonPhaseDescription(moonPhase);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Moon Phase Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Moon Phase: §f${moonPhase}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Phase Name: §f${moonPhaseName}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Description: §f${moonPhaseDescription}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Monster Spawn Rate: §f${getMoonPhaseSpawnRate(moonPhase)}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Moon Phase Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Moon Phase: §f${moonPhase}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Phase Name: §f${moonPhaseName}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Description: §f${moonPhaseDescription}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Monster Spawn Rate: §f${getMoonPhaseSpawnRate(moonPhase)}`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get moon phase information");
-        console.log("Moon phase info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get moon phase information');
+        console.log('Moon phase info error: ' + e);
     }
 }
 
@@ -5892,26 +6153,26 @@ function showPlayersInfo(player) {
         const allPlayers = world.getAllPlayers();
         const onlinePlayers = allPlayers.filter((p) => p.isValid);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Players Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Total Players Online: §f${onlinePlayers.length}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Players Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Total Players Online: §f${onlinePlayers.length}`);
 
         if (onlinePlayers.length > 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Online Players:");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Online Players:');
             for (let i = 0; i < Math.min(onlinePlayers.length, 20); i++) {
                 // Limit to 20 to avoid spam
                 const p = onlinePlayers[i];
                 const dimension = getDimensionName(p.dimension.id);
                 const gamemode = getPlayerGamemode(p);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`  §f${p.name} §7(${dimension}, ${gamemode})`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`  §f${p.name} §7(${dimension}, ${gamemode})`);
             }
 
             if (onlinePlayers.length > 20) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`  §7... and ${onlinePlayers.length - 20} more players`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`  §7... and ${onlinePlayers.length - 20} more players`);
             }
         }
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get players information");
-        console.log("Players info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get players information');
+        console.log('Players info error: ' + e);
     }
 }
 
@@ -5920,14 +6181,14 @@ function showDifficultyInfo(player) {
     try {
         // Note: Difficulty info might not be directly accessible via API
         // This is a placeholder implementation
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Difficulty Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7World Difficulty: §fNot directly accessible via API");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Mob Spawning: §fEnabled (assumed)");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Mob Griefing: §fUse /gamerule mobGriefing to check");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Keep Inventory: §fUse /gamerule keepInventory to check");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Difficulty Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7World Difficulty: §fNot directly accessible via API');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Mob Spawning: §fEnabled (assumed)');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Mob Griefing: §fUse /gamerule mobGriefing to check');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Keep Inventory: §fUse /gamerule keepInventory to check');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get difficulty information");
-        console.log("Difficulty info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get difficulty information');
+        console.log('Difficulty info error: ' + e);
     }
 }
 
@@ -5939,15 +6200,15 @@ function showAbsoluteTimeInfo(player) {
         const currentDayTime = absoluteTime % 24000;
         const realTimeElapsed = calculateRealTimeElapsed(absoluteTime);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Absolute Time Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Absolute Time: §f${absoluteTime.toLocaleString()} ticks`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Total Days Elapsed: §f${totalDays}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Current Day Time: §f${currentDayTime} ticks`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Estimated Real Time: §f${realTimeElapsed}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7World Age: §f${Math.round(absoluteTime / 1200)} minutes`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Absolute Time Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Absolute Time: §f${absoluteTime.toLocaleString()} ticks`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Total Days Elapsed: §f${totalDays}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Current Day Time: §f${currentDayTime} ticks`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Estimated Real Time: §f${realTimeElapsed}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7World Age: §f${Math.round(absoluteTime / 1200)} minutes`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get absolute time information");
-        console.log("Absolute time info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get absolute time information');
+        console.log('Absolute time info error: ' + e);
     }
 }
 
@@ -5957,13 +6218,13 @@ function showWeatherInfo(player) {
         // Note: Weather info might require dimension-specific queries
         const dimension = player.dimension;
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Weather Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Current Dimension: §f${getDimensionName(dimension.id)}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Weather: §fAPI access limited");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Use vanilla /weather query for detailed info");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Weather Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Current Dimension: §f${getDimensionName(dimension.id)}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Weather: §fAPI access limited');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Use vanilla /weather query for detailed info');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get weather information");
-        console.log("Weather info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get weather information');
+        console.log('Weather info error: ' + e);
     }
 }
 
@@ -5972,16 +6233,16 @@ function showSpawnInfo(player) {
     try {
         const spawnPoint = world.getDefaultSpawnLocation();
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Spawn Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7World Spawn: §f${spawnPoint.x}, ${spawnPoint.y}, ${spawnPoint.z}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Your Location: §f${Math.floor(player.location.x)}, ${Math.floor(player.location.y)}, ${Math.floor(player.location.z)}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Spawn Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7World Spawn: §f${spawnPoint.x}, ${spawnPoint.y}, ${spawnPoint.z}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Your Location: §f${Math.floor(player.location.x)}, ${Math.floor(player.location.y)}, ${Math.floor(player.location.z)}`);
 
         // Calculate distance to spawn
         const distance = Math.sqrt(Math.pow(player.location.x - spawnPoint.x, 2) + Math.pow(player.location.z - spawnPoint.z, 2));
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Distance to Spawn: §f${Math.round(distance)} blocks`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Distance to Spawn: §f${Math.round(distance)} blocks`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get spawn information");
-        console.log("Spawn info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get spawn information');
+        console.log('Spawn info error: ' + e);
     }
 }
 
@@ -6002,9 +6263,9 @@ function showEntitiesInfo(player) {
             entityCounts[type] = (entityCounts[type] || 0) + 1;
         }
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Entities Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Total Entities in Dimension: §f${allEntities.length}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Entities within 100 blocks: §f${nearbyEntities.length}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Entities Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Total Entities in Dimension: §f${allEntities.length}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Entities within 100 blocks: §f${nearbyEntities.length}`);
 
         // Show top entity types
         const sortedEntities = Object.entries(entityCounts)
@@ -6012,15 +6273,15 @@ function showEntitiesInfo(player) {
             .slice(0, 10);
 
         if (sortedEntities.length > 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Top Entity Types:");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Top Entity Types:');
             for (const [type, count] of sortedEntities) {
-                const simpleName = type.replace("minecraft:", "");
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`  §f${simpleName}: §7${count}`);
+                const simpleName = type.replace('minecraft:', '');
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`  §f${simpleName}: §7${count}`);
             }
         }
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get entities information");
-        console.log("Entities info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get entities information');
+        console.log('Entities info error: ' + e);
     }
 }
 
@@ -6029,39 +6290,39 @@ function showDimensionsInfo(player) {
     try {
         const currentDimension = getDimensionName(player.dimension.id);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Dimensions Information ---");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Current Dimension: §f${currentDimension}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Available Dimensions:");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("  §fOverworld §7(minecraft:overworld)");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("  §fNether §7(minecraft:nether)");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("  §fEnd §7(minecraft:the_end)");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Dimensions Information ---');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Current Dimension: §f${currentDimension}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Available Dimensions:');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('  §fOverworld §7(minecraft:overworld)');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('  §fNether §7(minecraft:nether)');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('  §fEnd §7(minecraft:the_end)');
 
         // Show current dimension details
         const dim = player.dimension;
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Current Dimension ID: §f${dim.id}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Current Dimension ID: §f${dim.id}`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to get dimensions information");
-        console.log("Dimensions info error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to get dimensions information');
+        console.log('Dimensions info error: ' + e);
     }
 }
 
 // Show all information
 function showAllInfo(player) {
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§e=== WORLD INFORMATION SUMMARY ===");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§e=== WORLD INFORMATION SUMMARY ===');
     showTimeInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
     showDayInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
     showMoonPhaseInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
     showPlayersInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
     showSpawnInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
     showEntitiesInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
     showDimensionsInfo(player);
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§e=== END SUMMARY ===");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§e=== END SUMMARY ===');
 }
 
 // Helper functions
@@ -6069,51 +6330,51 @@ function formatMinecraftTime(ticks) {
     const totalMinutes = Math.floor((((ticks + 6000) / 1000) * 60) / 60); // Offset by 6000 for 6 AM start
     const hours = Math.floor(totalMinutes / 60) % 24;
     const minutes = totalMinutes % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
 function getTimePhase(ticks) {
-    if (ticks >= 23000 || ticks < 1000) return "Night";
-    if (ticks >= 1000 && ticks < 6000) return "Morning";
-    if (ticks >= 6000 && ticks < 12000) return "Day";
-    if (ticks >= 12000 && ticks < 18000) return "Afternoon";
-    if (ticks >= 18000 && ticks < 23000) return "Evening";
-    return "Unknown";
+    if (ticks >= 23000 || ticks < 1000) return 'Night';
+    if (ticks >= 1000 && ticks < 6000) return 'Morning';
+    if (ticks >= 6000 && ticks < 12000) return 'Day';
+    if (ticks >= 12000 && ticks < 18000) return 'Afternoon';
+    if (ticks >= 18000 && ticks < 23000) return 'Evening';
+    return 'Unknown';
 }
 
 function getMoonPhaseName(phase) {
-    const phases = ["Full Moon", "Waning Gibbous", "Third Quarter", "Waning Crescent", "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous"];
-    return phases[phase] || "Unknown";
+    const phases = ['Full Moon', 'Waning Gibbous', 'Third Quarter', 'Waning Crescent', 'New Moon', 'Waxing Crescent', 'First Quarter', 'Waxing Gibbous'];
+    return phases[phase] || 'Unknown';
 }
 
 function getMoonPhaseDescription(phase) {
     const descriptions = [
-        "Brightest night, highest mob spawn rate",
-        "Bright night, high mob spawn rate",
-        "Moderate lighting, normal spawn rate",
-        "Dim night, reduced spawn rate",
-        "Darkest night, lowest mob spawn rate",
-        "Dim night, reduced spawn rate",
-        "Moderate lighting, normal spawn rate",
-        "Bright night, high mob spawn rate",
+        'Brightest night, highest mob spawn rate',
+        'Bright night, high mob spawn rate',
+        'Moderate lighting, normal spawn rate',
+        'Dim night, reduced spawn rate',
+        'Darkest night, lowest mob spawn rate',
+        'Dim night, reduced spawn rate',
+        'Moderate lighting, normal spawn rate',
+        'Bright night, high mob spawn rate',
     ];
-    return descriptions[phase] || "Unknown effect";
+    return descriptions[phase] || 'Unknown effect';
 }
 
 function getMoonPhaseSpawnRate(phase) {
     // Moon phase affects spawn rates (0 = full moon = highest)
-    const rates = ["Maximum", "High", "Normal", "Reduced", "Minimum", "Reduced", "Normal", "High"];
-    return rates[phase] || "Unknown";
+    const rates = ['Maximum', 'High', 'Normal', 'Reduced', 'Minimum', 'Reduced', 'Normal', 'High'];
+    return rates[phase] || 'Unknown';
 }
 
 function getDimensionName(dimensionId) {
     switch (dimensionId) {
-        case "minecraft:overworld":
-            return "Overworld";
-        case "minecraft:nether":
-            return "Nether";
-        case "minecraft:the_end":
-            return "End";
+        case 'minecraft:overworld':
+            return 'Overworld';
+        case 'minecraft:nether':
+            return 'Nether';
+        case 'minecraft:the_end':
+            return 'End';
         default:
             return dimensionId;
     }
@@ -6121,7 +6382,7 @@ function getDimensionName(dimensionId) {
 
 function getPlayerGamemode(player) {
     // This would require access to player gamemode, which might not be directly available
-    return "Unknown"; // Placeholder
+    return 'Unknown'; // Placeholder
 }
 
 function calculateRealTimeElapsed(absoluteTime) {
@@ -6148,16 +6409,16 @@ function getVeinToolFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Get vein tool requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Get vein tool requires a player');
                 return;
             }
 
             createVeinTool(player);
         } catch (e) {
-            console.log("Failed to create vein tool: " + e);
+            console.log('Failed to create vein tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create vein tool: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create vein tool: ${e.message || e}`);
             }
         }
     });
@@ -6168,41 +6429,41 @@ function getVeinToolFunction(origin) {
 // Create vein tool item
 function createVeinTool(player) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
 
         // Create vein tool (golden pickaxe with special lore)
-        const veinTool = new ItemStack("minecraft:golden_pickaxe", 1);
-        veinTool.nameTag = "§eVein Tool";
+        const veinTool = new ItemStack('minecraft:golden_pickaxe', 1);
+        veinTool.nameTag = '§eVein Tool';
 
         // Initialize player state
         VEIN_TOOL_STATES.set(player.id, { corners: [], breakCount: 0 });
 
         // Create initial lore
-        const loreLines = ["§7Right-click to mark exits", "§7Left-click blocks to set corners", "§8§l--- CORNERS ---", "§7Corner 1: §cNot set", "§7Corner 2: §cNot set", "§8§l--- EXITS ---"];
+        const loreLines = ['§7Right-click to mark exits', '§7Left-click blocks to set corners', '§8§l--- CORNERS ---', '§7Corner 1: §cNot set', '§7Corner 2: §cNot set', '§8§l--- EXITS ---'];
 
         veinTool.setLore(loreLines);
 
         equippable.setEquipment(EquipmentSlot.Mainhand, veinTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aVein tool created!");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Left-click: Set corners (break 3rd block to reset)");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Right-click: Mark exits");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aVein tool created!');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Left-click: Set corners (break 3rd block to reset)');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Right-click: Mark exits');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create vein tool: ${e}`);
-        console.log("Failed to create vein tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create vein tool: ${e}`);
+        console.log('Failed to create vein tool: ' + e);
     }
 }
 
 // Update vein tool lore
 function updateVeinToolLore(player, veinTool, toolState) {
-    const loreLines = ["§7Right-click to mark exits", "§7Left-click blocks to set corners", "§8§l--- CORNERS ---"];
+    const loreLines = ['§7Right-click to mark exits', '§7Left-click blocks to set corners', '§8§l--- CORNERS ---'];
 
     // Add corner information
     if (toolState.corners.length >= 1) {
         const corner1 = toolState.corners[0];
         loreLines.push(`§7Corner 1: §a${corner1.x}, ${corner1.y}, ${corner1.z}`);
     } else {
-        loreLines.push("§7Corner 1: §cNot set");
+        loreLines.push('§7Corner 1: §cNot set');
     }
 
     if (toolState.corners.length >= 2) {
@@ -6217,10 +6478,10 @@ function updateVeinToolLore(player, veinTool, toolState) {
 
         loreLines.push(`§7Area: §f${dx}×${dy}×${dz} §7(${volume.toLocaleString()} blocks)`);
     } else {
-        loreLines.push("§7Corner 2: §cNot set");
+        loreLines.push('§7Corner 2: §cNot set');
     }
 
-    loreLines.push("§8§l--- EXITS ---");
+    loreLines.push('§8§l--- EXITS ---');
 
     // Add exit markers
     const exitCount = getExitMarkersCount(veinTool.getLore());
@@ -6232,16 +6493,16 @@ function updateVeinToolLore(player, veinTool, toolState) {
         let inExitSection = false;
 
         for (const line of currentLore) {
-            if (line === "§8§l--- EXITS ---") {
+            if (line === '§8§l--- EXITS ---') {
                 inExitSection = true;
                 continue;
             }
-            if (inExitSection && line.startsWith("§6Exit")) {
+            if (inExitSection && line.startsWith('§6Exit')) {
                 loreLines.push(line);
             }
         }
     } else {
-        loreLines.push("§7No exits marked");
+        loreLines.push('§7No exits marked');
     }
 
     return loreLines;
@@ -6253,11 +6514,11 @@ function getExitMarkersCount(loreArray) {
     let inExitSection = false;
 
     for (const line of loreArray) {
-        if (line === "§8§l--- EXITS ---") {
+        if (line === '§8§l--- EXITS ---') {
             inExitSection = true;
             continue;
         }
-        if (inExitSection && line.startsWith("§6Exit")) {
+        if (inExitSection && line.startsWith('§6Exit')) {
             count++;
         }
     }
@@ -6267,13 +6528,13 @@ function getExitMarkersCount(loreArray) {
 
 // Event handler for vein tool right-click (mark exits)
 world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.source.typeId !== "minecraft:player" || !ev.itemStack) return;
+    if (ev.source.typeId !== 'minecraft:player' || !ev.itemStack) return;
 
     const player = ev.source;
     const itemStack = ev.itemStack;
 
     // Check if it's the vein tool
-    if (!itemStack.nameTag || !itemStack.nameTag.includes("Vein Tool")) return;
+    if (!itemStack.nameTag || !itemStack.nameTag.includes('Vein Tool')) return;
 
     try {
         // Get block player is looking at
@@ -6282,12 +6543,12 @@ world.afterEvents.itemUse.subscribe((ev) => {
         });
 
         if (!blockFromView || !blockFromView.block) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo block found in view direction!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo block found in view direction!');
             return;
         }
 
         const targetLocation = blockFromView.block.location;
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
         const currentTool = equippable.getEquipment(EquipmentSlot.Mainhand);
 
         if (!currentTool) return;
@@ -6304,11 +6565,11 @@ world.afterEvents.itemUse.subscribe((ev) => {
         newTool.setLore(newLore);
         equippable.setEquipment(EquipmentSlot.Mainhand, newTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aExit ${exitCount} marked at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aExit ${exitCount} marked at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
 
         // Show particle at exit location
         try {
-            player.dimension.spawnParticle("minecraft:totem_particle", {
+            player.dimension.spawnParticle('minecraft:totem_particle', {
                 x: targetLocation.x + 0.5,
                 y: targetLocation.y + 1,
                 z: targetLocation.z + 0.5,
@@ -6317,19 +6578,19 @@ world.afterEvents.itemUse.subscribe((ev) => {
             // Particle failed, but exit was still marked
         }
     } catch (e) {
-        console.log("Error marking exit: " + e);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to mark exit!");
+        console.log('Error marking exit: ' + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to mark exit!');
     }
 });
 
 // Event handler for vein tool left-click (set corners)
 world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     const player = ev.player;
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
     // Check if holding vein tool
-    if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Vein Tool")) return;
+    if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Vein Tool')) return;
 
     // Cancel the break event
     ev.cancel = true;
@@ -6348,11 +6609,11 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
             if (toolState.breakCount === 1) {
                 // Set first corner
                 toolState.corners = [{ x: targetLocation.x, y: targetLocation.y, z: targetLocation.z }];
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aCorner 1 set at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aCorner 1 set at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
 
                 // Show particle
                 try {
-                    player.dimension.spawnParticle("minecraft:villager_happy", {
+                    player.dimension.spawnParticle('minecraft:villager_happy', {
                         x: targetLocation.x + 0.5,
                         y: targetLocation.y + 1,
                         z: targetLocation.z + 0.5,
@@ -6367,7 +6628,7 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
                     y: targetLocation.y,
                     z: targetLocation.z,
                 });
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aCorner 2 set at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aCorner 2 set at ${targetLocation.x}, ${targetLocation.y}, ${targetLocation.z}`);
 
                 // Calculate and show area
                 const corner1 = toolState.corners[0];
@@ -6377,11 +6638,11 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
                 const dz = Math.abs(corner2.z - corner1.z) + 1;
                 const volume = dx * dy * dz;
 
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Selected area: §f${dx}×${dy}×${dz} §7(${volume.toLocaleString()} blocks)`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Selected area: §f${dx}×${dy}×${dz} §7(${volume.toLocaleString()} blocks)`);
 
                 // Show particle
                 try {
-                    player.dimension.spawnParticle("minecraft:villager_happy", {
+                    player.dimension.spawnParticle('minecraft:villager_happy', {
                         x: targetLocation.x + 0.5,
                         y: targetLocation.y + 1,
                         z: targetLocation.z + 0.5,
@@ -6393,11 +6654,11 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
                 // Reset corners
                 toolState.corners = [];
                 toolState.breakCount = 0;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§eCorners reset! Click first corner to start over.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§eCorners reset! Click first corner to start over.');
 
                 // Show reset particle
                 try {
-                    player.dimension.spawnParticle("minecraft:critical_hit_emitter", {
+                    player.dimension.spawnParticle('minecraft:critical_hit_emitter', {
                         x: targetLocation.x + 0.5,
                         y: targetLocation.y + 1,
                         z: targetLocation.z + 0.5,
@@ -6413,8 +6674,8 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
             newTool.setLore(updatedLore);
             equippable.setEquipment(EquipmentSlot.Mainhand, newTool);
         } catch (e) {
-            console.log("Error setting corner: " + e);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to set corner!");
+            console.log('Error setting corner: ' + e);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to set corner!');
         }
     });
 });
@@ -6423,14 +6684,14 @@ function clearVeinToolFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
             const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
             // Check if holding vein tool
-            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Vein Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must be holding a Vein Tool!");
+            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Vein Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must be holding a Vein Tool!');
                 return;
             }
 
@@ -6440,23 +6701,23 @@ function clearVeinToolFunction(origin) {
             // Reset tool lore
             const newTool = heldItem.clone();
             const resetLore = [
-                "§7Right-click to mark exits",
-                "§7Left-click blocks to set corners",
-                "§8§l--- CORNERS ---",
-                "§7Corner 1: §cNot set",
-                "§7Corner 2: §cNot set",
-                "§8§l--- EXITS ---",
-                "§7No exits marked",
+                '§7Right-click to mark exits',
+                '§7Left-click blocks to set corners',
+                '§8§l--- CORNERS ---',
+                '§7Corner 1: §cNot set',
+                '§7Corner 2: §cNot set',
+                '§8§l--- EXITS ---',
+                '§7No exits marked',
             ];
 
             newTool.setLore(resetLore);
             equippable.setEquipment(EquipmentSlot.Mainhand, newTool);
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aVein tool data cleared!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aVein tool data cleared!');
         } catch (e) {
-            console.log("Failed to clear vein tool: " + e);
+            console.log('Failed to clear vein tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to clear vein tool: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to clear vein tool: ${e.message || e}`);
             }
         }
     });
@@ -6468,14 +6729,14 @@ function veinToolInfoFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
             const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
             // Check if holding vein tool
-            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Vein Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must be holding a Vein Tool!");
+            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Vein Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must be holding a Vein Tool!');
                 return;
             }
 
@@ -6484,9 +6745,9 @@ function veinToolInfoFunction(origin) {
                 breakCount: 0,
             };
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Vein Tool Information ---");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Corners Set: §f${toolState.corners.length}/2`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Break Count: §f${toolState.breakCount}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Vein Tool Information ---');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Corners Set: §f${toolState.corners.length}/2`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Break Count: §f${toolState.breakCount}`);
 
             if (toolState.corners.length >= 2) {
                 const corner1 = toolState.corners[0];
@@ -6496,15 +6757,15 @@ function veinToolInfoFunction(origin) {
                 const dz = Math.abs(corner2.z - corner1.z) + 1;
                 const volume = dx * dy * dz;
 
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Selected Area: §f${dx}×${dy}×${dz} (${volume.toLocaleString()} blocks)`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7From: §f${corner1.x}, ${corner1.y}, ${corner1.z}`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7To: §f${corner2.x}, ${corner2.y}, ${corner2.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Selected Area: §f${dx}×${dy}×${dz} (${volume.toLocaleString()} blocks)`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7From: §f${corner1.x}, ${corner1.y}, ${corner1.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7To: §f${corner2.x}, ${corner2.y}, ${corner2.z}`);
             }
 
             const exitCount = getExitMarkersCount(heldItem.getLore());
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Exits Marked: §f${exitCount}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Exits Marked: §f${exitCount}`);
         } catch (e) {
-            console.log("Failed to show vein tool info: " + e);
+            console.log('Failed to show vein tool info: ' + e);
         }
     });
 
@@ -6516,17 +6777,17 @@ function generateVeinsFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Generate veins requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Generate veins requires a player');
                 return;
             }
 
             // Check if player has vein tool and corners set
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
             const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
-            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Vein Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must hold a Vein Tool to generate veins!");
+            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Vein Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must hold a Vein Tool to generate veins!');
                 return;
             }
 
@@ -6536,7 +6797,7 @@ function generateVeinsFunction(origin) {
             };
 
             if (toolState.corners.length < 2) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must set both corners with the vein tool first!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must set both corners with the vein tool first!');
                 return;
             }
 
@@ -6544,15 +6805,15 @@ function generateVeinsFunction(origin) {
             const exits = getExitsFromLore(heldItem.getLore());
 
             if (exits.length === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must mark at least one exit with the vein tool!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must mark at least one exit with the vein tool!');
                 return;
             }
 
             showVeinGenerationGUI(player, toolState, exits);
         } catch (e) {
-            console.log("Failed to open vein generation GUI: " + e);
+            console.log('Failed to open vein generation GUI: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to open vein GUI: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to open vein GUI: ${e.message || e}`);
             }
         }
     });
@@ -6566,11 +6827,11 @@ function getExitsFromLore(loreArray) {
     let inExitSection = false;
 
     for (const line of loreArray) {
-        if (line === "§8§l--- EXITS ---") {
+        if (line === '§8§l--- EXITS ---') {
             inExitSection = true;
             continue;
         }
-        if (inExitSection && line.startsWith("§6Exit")) {
+        if (inExitSection && line.startsWith('§6Exit')) {
             // Parse format: "§6Exit 1: §f100, 64, 200"
             const match = line.match(/§6Exit \d+: §f(-?\d+), (-?\d+), (-?\d+)/);
             if (match) {
@@ -6597,15 +6858,15 @@ function showVeinGenerationGUI(player, toolState, exits) {
     const volume = dx * dy * dz;
 
     const form = new ModalFormData()
-        .title("§6Generate Vein System")
+        .title('§6Generate Vein System')
         .textField(`Area: ${dx}×${dy}×${dz} (${volume.toLocaleString()} blocks), Exits: ${exits.length}`, `From: ${corner1.x},${corner1.y},${corner1.z} To: ${corner2.x},${corner2.y},${corner2.z}`)
-        .slider("Vein Radius (thickness)", 1, 8)
-        .slider("Random Points", 3, 50)
-        .textField("Block Type (or leave empty for multiblock from offhand):", "minecraft:stone")
-        .dropdown("Connection Type", ["Dense Network", "Linear Chain", "Star Pattern", "Random Web"])
-        .toggle("Connect to All Exits", { defaultValue: true })
-        .toggle("Fill Interior (not just surface)", { defaultValue: false })
-        .toggle("Preview Mode (particles only)", { defaultValue: false });
+        .slider('Vein Radius (thickness)', 1, 8)
+        .slider('Random Points', 3, 50)
+        .textField('Block Type (or leave empty for multiblock from offhand):', 'minecraft:stone')
+        .dropdown('Connection Type', ['Dense Network', 'Linear Chain', 'Star Pattern', 'Random Web'])
+        .toggle('Connect to All Exits', { defaultValue: true })
+        .toggle('Fill Interior (not just surface)', { defaultValue: false })
+        .toggle('Preview Mode (particles only)', { defaultValue: false });
 
     form.show(player).then((response) => {
         if (response.canceled) return;
@@ -6638,25 +6899,25 @@ function generateVeinSystem(player, veinConfig) {
         // Get blocks to use
         const blocks = getVeinBlocks(player, veinConfig.blockType);
         if (!blocks || blocks.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo valid blocks found! Check block type or offhand item.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo valid blocks found! Check block type or offhand item.');
             return;
         }
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aGenerating vein system...");
-        if (!player.hasTag("dontshowcommandlogs"))
-            player.sendMessage(`§7Radius: ${veinConfig.radius}, Points: ${veinConfig.randomPoints}, Blocks: ${blocks.length} type${blocks.length > 1 ? "s" : ""}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aGenerating vein system...');
+        if (!player.hasTag('dontshowcommandlogs'))
+            player.sendMessage(`§7Radius: ${veinConfig.radius}, Points: ${veinConfig.randomPoints}, Blocks: ${blocks.length} type${blocks.length > 1 ? 's' : ''}`);
 
         // Start async vein generation
         generateVeinAsync(player, veinConfig, blocks);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to generate veins: ${e}`);
-        console.log("Failed to generate veins: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to generate veins: ${e}`);
+        console.log('Failed to generate veins: ' + e);
     }
 }
 
 // Get blocks for vein generation
 function getVeinBlocks(player, blockType) {
-    if (blockType && blockType !== "") {
+    if (blockType && blockType !== '') {
         // Use specified block type
         try {
             BlockPermutation.resolve(blockType);
@@ -6667,24 +6928,24 @@ function getVeinBlocks(player, blockType) {
     }
 
     // Use blocks from offhand (multiblock support)
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const offhandItem = equippable?.getEquipment(EquipmentSlot.Offhand);
 
     if (!offhandItem) return null;
 
     // Check if it's a multi-block item
     const loreArray = offhandItem.getLore();
-    if (loreArray && loreArray.some((lore) => lore === "§6Multi-Block Item")) {
+    if (loreArray && loreArray.some((lore) => lore === '§6Multi-Block Item')) {
         const blocks = [];
         let foundBlocksSection = false;
 
         for (const lore of loreArray) {
-            if (lore === "§7Blocks:") {
+            if (lore === '§7Blocks:') {
                 foundBlocksSection = true;
                 continue;
             }
-            if (foundBlocksSection && lore.startsWith("§8- ")) {
-                const blockId = lore.replace("§8- ", "");
+            if (foundBlocksSection && lore.startsWith('§8- ')) {
+                const blockId = lore.replace('§8- ', '');
                 blocks.push(blockId);
             }
         }
@@ -6716,7 +6977,7 @@ function generateVeinAsync(player, veinConfig, blocks) {
         startTime: Date.now(),
 
         // Processing phases
-        currentPhase: "generating_points", // generating_points, creating_paths, connecting_exits, placing_blocks
+        currentPhase: 'generating_points', // generating_points, creating_paths, connecting_exits, placing_blocks
         intervalId: null,
     };
 
@@ -6729,16 +6990,16 @@ function generateVeinAsync(player, veinConfig, blocks) {
 // Process vein generation phases
 function processVeinGeneration(veinState) {
     switch (veinState.currentPhase) {
-        case "generating_points":
+        case 'generating_points':
             generateRandomPoints(veinState);
             break;
-        case "creating_paths":
+        case 'creating_paths':
             createVeinPaths(veinState);
             break;
-        case "connecting_exits":
+        case 'connecting_exits':
             connectExitPaths(veinState);
             break;
-        case "placing_blocks":
+        case 'placing_blocks':
             placeVeinBlocks(veinState);
             break;
     }
@@ -6765,8 +7026,8 @@ function generateRandomPoints(veinState) {
         veinState.randomPoints.push(point);
     }
 
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Generated ${veinState.randomPoints.length} random vein points`);
-    veinState.currentPhase = "creating_paths";
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Generated ${veinState.randomPoints.length} random vein points`);
+    veinState.currentPhase = 'creating_paths';
 }
 
 // Phase 2: Create paths between random points
@@ -6821,8 +7082,8 @@ function createVeinPaths(veinState) {
     // Remove duplicates
     veinState.veinPaths = removeDuplicatePositions(veinState.veinPaths);
 
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Created vein network with ${veinState.veinPaths.length} path blocks`);
-    veinState.currentPhase = "connecting_exits";
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Created vein network with ${veinState.veinPaths.length} path blocks`);
+    veinState.currentPhase = 'connecting_exits';
 }
 
 // Phase 3: Connect exits to the vein network
@@ -6844,8 +7105,8 @@ function connectExitPaths(veinState) {
     veinState.exitPaths = removeDuplicatePositions(veinState.exitPaths);
     veinState.allVeinPositions = removeDuplicatePositions([...veinState.veinPaths, ...veinState.exitPaths]);
 
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Connected ${veinState.config.exits.length} exits, total path blocks: ${veinState.allVeinPositions.length}`);
-    veinState.currentPhase = "placing_blocks";
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Connected ${veinState.config.exits.length} exits, total path blocks: ${veinState.allVeinPositions.length}`);
+    veinState.currentPhase = 'placing_blocks';
 }
 
 // Phase 4: Place blocks with radius
@@ -6993,9 +7254,9 @@ function removeDuplicatePositions(positions) {
 // Show vein preview with particles
 function showVeinPreview(player, veinConfig) {
     // This would show particles for preview - simplified version
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aShowing vein preview...");
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7This would show particles indicating where veins will be placed");
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Use form again without preview to generate actual veins");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aShowing vein preview...');
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7This would show particles indicating where veins will be placed');
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Use form again without preview to generate actual veins');
 }
 
 // Finish vein generation
@@ -7003,11 +7264,11 @@ function finishVeinGeneration(veinState) {
     const elapsed = Math.round((Date.now() - veinState.startTime) / 1000);
     const rate = elapsed > 0 ? Math.round(veinState.blocksPlaced / elapsed) : 0;
 
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§aVein system generation complete!`);
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Network: ${veinState.veinPaths.length} vein blocks, ${veinState.exitPaths.length} exit connections`);
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Blocks placed: ${veinState.blocksPlaced}, Failed: ${veinState.blocksFailed}`);
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Time: ${elapsed}s (${rate} blocks/s)`);
-    if (!veinState.player.hasTag("dontshowcommandlogs")) veinState.player.sendMessage(`§7Used ${veinState.blocks.length} different block type${veinState.blocks.length > 1 ? "s" : ""}`);
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§aVein system generation complete!`);
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Network: ${veinState.veinPaths.length} vein blocks, ${veinState.exitPaths.length} exit connections`);
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Blocks placed: ${veinState.blocksPlaced}, Failed: ${veinState.blocksFailed}`);
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Time: ${elapsed}s (${rate} blocks/s)`);
+    if (!veinState.player.hasTag('dontshowcommandlogs')) veinState.player.sendMessage(`§7Used ${veinState.blocks.length} different block type${veinState.blocks.length > 1 ? 's' : ''}`);
 
     system.clearRun(veinState.intervalId);
 }
@@ -7018,63 +7279,63 @@ function hiddenBlocksFunction(origin) {
 
         const hiddenBlocks = [
             {
-                id: "minecraft:command_block",
-                name: "Command Block",
-                texture: "textures/blocks/command_block",
+                id: 'minecraft:command_block',
+                name: 'Command Block',
+                texture: 'textures/blocks/command_block',
             },
             {
-                id: "minecraft:chain_command_block",
-                name: "Chain Command Block",
-                texture: "textures/blocks/chain_command_block_front_mipmap",
+                id: 'minecraft:chain_command_block',
+                name: 'Chain Command Block',
+                texture: 'textures/blocks/chain_command_block_front_mipmap',
             },
             {
-                id: "minecraft:repeating_command_block",
-                name: "Repeating Command Block",
-                texture: "textures/blocks/repeating_command_block_front_mipmap",
+                id: 'minecraft:repeating_command_block',
+                name: 'Repeating Command Block',
+                texture: 'textures/blocks/repeating_command_block_front_mipmap',
             },
             {
-                id: "minecraft:barrier",
-                name: "Barrier",
-                texture: "textures/blocks/barrier",
+                id: 'minecraft:barrier',
+                name: 'Barrier',
+                texture: 'textures/blocks/barrier',
             },
             {
-                id: "minecraft:structure_block",
-                name: "Structure Block",
-                texture: "textures/blocks/structure_block",
+                id: 'minecraft:structure_block',
+                name: 'Structure Block',
+                texture: 'textures/blocks/structure_block',
             },
             {
-                id: "minecraft:jigsaw",
-                name: "Jigsaw Block",
-                texture: "textures/blocks/jigsaw_front",
+                id: 'minecraft:jigsaw',
+                name: 'Jigsaw Block',
+                texture: 'textures/blocks/jigsaw_front',
             },
             {
-                id: "minecraft:structure_void",
-                name: "Structure Void",
-                texture: "textures/blocks/structure_void",
+                id: 'minecraft:structure_void',
+                name: 'Structure Void',
+                texture: 'textures/blocks/structure_void',
             },
             {
-                id: "minecraft:allow",
-                name: "Allow",
-                texture: "textures/blocks/build_allow",
+                id: 'minecraft:allow',
+                name: 'Allow',
+                texture: 'textures/blocks/build_allow',
             },
             {
-                id: "minecraft:deny",
-                name: "Deny",
-                texture: "textures/blocks/build_deny",
+                id: 'minecraft:deny',
+                name: 'Deny',
+                texture: 'textures/blocks/build_deny',
             },
             {
-                id: "minecraft:border_block",
-                name: "Border Block",
-                texture: "textures/blocks/border",
+                id: 'minecraft:border_block',
+                name: 'Border Block',
+                texture: 'textures/blocks/border',
             },
             {
-                id: "minecraft:light_block",
-                name: "Light Block",
-                texture: "textures/items/light_block_15", // 0-15 variants
+                id: 'minecraft:light_block',
+                name: 'Light Block',
+                texture: 'textures/items/light_block_15', // 0-15 variants
             },
         ];
 
-        const form = new ActionFormData().title("§5HIDDEN BLOCKS");
+        const form = new ActionFormData().title('§5HIDDEN BLOCKS');
 
         for (const block of hiddenBlocks) {
             form.button(block.name, block.texture);
@@ -7083,7 +7344,7 @@ function hiddenBlocksFunction(origin) {
         form.show(player).then((r) => {
             if (!r.canceled) {
                 player.runCommand(`give @s ${hiddenBlocks[r.selection].id} 1 0`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`You can get this block by using\n§e/give @s ${hiddenBlocks[r.selection].id}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`You can get this block by using\n§e/give @s ${hiddenBlocks[r.selection].id}`);
             }
         });
     });
@@ -7096,16 +7357,16 @@ function copyEntityToolFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Get copy entity tool requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Get copy entity tool requires a player');
                 return;
             }
 
             createCopyEntityTool(player);
         } catch (e) {
-            console.log("Failed to create copy entity tool: " + e);
+            console.log('Failed to create copy entity tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create copy entity tool: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create copy entity tool: ${e.message || e}`);
             }
         }
     });
@@ -7116,30 +7377,30 @@ function copyEntityToolFunction(origin) {
 // Create copy entity tool
 function createCopyEntityTool(player) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
 
         // Create copy entity tool (lead with special lore)
-        const copyTool = new ItemStack("minecraft:golden_sword", 1);
-        copyTool.nameTag = "§aCopy Entity Tool";
+        const copyTool = new ItemStack('minecraft:golden_sword', 1);
+        copyTool.nameTag = '§aCopy Entity Tool';
 
-        const loreLines = ["§7Right-click entities to copy them", "§7Right-click blocks to spawn copied entity", "§8§l--- COPIED ENTITIES ---", "§7No entities copied yet"];
+        const loreLines = ['§7Right-click entities to copy them', '§7Right-click blocks to spawn copied entity', '§8§l--- COPIED ENTITIES ---', '§7No entities copied yet'];
 
         copyTool.setLore(loreLines);
 
         equippable.setEquipment(EquipmentSlot.Mainhand, copyTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aCopy Entity Tool created!");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Right-click entities to copy, right-click blocks to spawn");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aCopy Entity Tool created!');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Right-click entities to copy, right-click blocks to spawn');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create copy entity tool: ${e}`);
-        console.log("Failed to create copy entity tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create copy entity tool: ${e}`);
+        console.log('Failed to create copy entity tool: ' + e);
     }
 }
 
 // Generate random 5-character base64 string for entity code
 function generateEntityCode(length = 5) {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
-    let result = "";
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-';
+    let result = '';
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -7150,7 +7411,7 @@ function generateEntityCode(length = 5) {
 function extractEntityData(entity) {
     const data = {
         typeId: entity.typeId,
-        nameTag: entity.nameTag || "",
+        nameTag: entity.nameTag || '',
         health: null,
         maxHealth: null,
         tags: [],
@@ -7159,7 +7420,7 @@ function extractEntityData(entity) {
 
     try {
         // Get health info
-        const health = entity.getComponent("minecraft:health");
+        const health = entity.getComponent('minecraft:health');
         if (health) {
             data.health = health.currentValue;
             data.maxHealth = health.effectiveMax;
@@ -7198,7 +7459,7 @@ function createEntityLore(entityData, entityCode) {
 
     // Basic info
     lore.push(`§6Code: §f${entityCode}`);
-    lore.push(`§7Type: §f${entityData.typeId.replace("minecraft:", "")}`);
+    lore.push(`§7Type: §f${entityData.typeId.replace('minecraft:', '')}`);
 
     if (entityData.nameTag) {
         lore.push(`§7Name: §f${entityData.nameTag}`);
@@ -7211,13 +7472,13 @@ function createEntityLore(entityData, entityCode) {
 
     // Tags
     if (entityData.tags.length > 0) {
-        lore.push(`§7Tags: §f${entityData.tags.slice(0, 5).join(", ")}${entityData.tags.length > 5 ? "..." : ""}`);
+        lore.push(`§7Tags: §f${entityData.tags.slice(0, 5).join(', ')}${entityData.tags.length > 5 ? '...' : ''}`);
     }
 
     // Effects
     if (entityData.effects.length > 0) {
-        const effectNames = entityData.effects.slice(0, 5).map((effect) => effect.type.replace("minecraft:", "") + (effect.amplifier > 0 ? ` ${effect.amplifier + 1}` : ""));
-        lore.push(`§7Effects: §f${effectNames.join(", ")}${entityData.effects.length > 2 ? "..." : ""}`);
+        const effectNames = entityData.effects.slice(0, 5).map((effect) => effect.type.replace('minecraft:', '') + (effect.amplifier > 0 ? ` ${effect.amplifier + 1}` : ''));
+        lore.push(`§7Effects: §f${effectNames.join(', ')}${entityData.effects.length > 2 ? '...' : ''}`);
     }
 
     return lore;
@@ -7228,7 +7489,7 @@ function saveEntityStructure(player, entityData, entityCode, entity) {
     try {
         ///structure save zombie ~~~~~~ true disk false
         player.runCommand(`structure save ${entityCode} ${entity.location.x} ${entity.location.y} ${entity.location.z} ${entity.location.x} ${entity.location.y} ${entity.location.z} true disk false`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aEntity saved with code: §e${entityCode}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aEntity saved with code: §e${entityCode}`);
 
         return true;
     } catch (e) {
@@ -7247,10 +7508,10 @@ function loadEntityFunction(origin, location, amount = 1, code = undefined) {
 
             if (!entityCode) {
                 entityCode = player
-                    .getComponent("minecraft:equippable")
+                    .getComponent('minecraft:equippable')
                     .getEquipment(EquipmentSlot.Mainhand)
                     .getLore()
-                    .find((l) => l.startsWith("§6Code: §f"))
+                    .find((l) => l.startsWith('§6Code: §f'))
                     .slice(10);
             }
 
@@ -7272,11 +7533,11 @@ function loadEntityFunction(origin, location, amount = 1, code = undefined) {
                 player.runCommand(`execute as @s positioned ${location.x} ${location.y} ${location.z} run heal @e[r=64,type=!player,tag=setMaxHealth] health`);
                 player.runCommand(`execute as @s positioned ${location.x} ${location.y} ${location.z} run tag @e[r=64,type=!player,tag=setMaxHealth] remove setMaxHealth`);
             }, 10);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aSpawned: ${spawned}, Failed: ${failed}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aSpawned: ${spawned}, Failed: ${failed}`);
         } catch (e) {
-            console.log("Failed to load entity: " + e);
+            console.log('Failed to load entity: ' + e);
             if (player) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to load entity: ${e.message || e}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to load entity: ${e.message || e}`);
             }
         }
     });
@@ -7288,7 +7549,7 @@ function loadEntityFunction(origin, location, amount = 1, code = undefined) {
 world.afterEvents.itemUse.subscribe((ev) => {
     const player = ev.source;
     const itemStack = ev.itemStack;
-    const entities = player.getEntitiesFromViewDirection({ maxDistance: 15 });
+    const entities = player.getEntitiesFromViewDirection({ maxDistance: 25 });
 
     let entity;
 
@@ -7303,7 +7564,7 @@ world.afterEvents.itemUse.subscribe((ev) => {
         }
     }
 
-    if (entity && itemStack && itemStack.nameTag.includes("§aCopy Entity Tool") && itemStack.getLore().length >= 1 && itemStack.getLore().includes("§7No entities copied yet")) {
+    if (entity && itemStack && itemStack.nameTag.includes('§aCopy Entity Tool') && itemStack.getLore().length >= 1 && itemStack.getLore().includes('§7No entities copied yet')) {
         try {
             // Copy the entity
             const entityData = extractEntityData(entity);
@@ -7314,7 +7575,7 @@ world.afterEvents.itemUse.subscribe((ev) => {
 
             if (saved) {
                 // Update tool lore
-                const equippable = player.getComponent("minecraft:equippable");
+                const equippable = player.getComponent('minecraft:equippable');
                 const currentTool = equippable.getEquipment(EquipmentSlot.Mainhand);
 
                 if (currentTool) {
@@ -7322,7 +7583,7 @@ world.afterEvents.itemUse.subscribe((ev) => {
                     const currentLore = newTool.getLore();
 
                     // Remove "No entities copied yet" if present
-                    const filteredLore = currentLore.filter((line) => !line.includes("No entities copied yet"));
+                    const filteredLore = currentLore.filter((line) => !line.includes('No entities copied yet'));
 
                     // Add new entity info
                     const entityLore = createEntityLore(entityData, entityCode);
@@ -7330,21 +7591,21 @@ world.afterEvents.itemUse.subscribe((ev) => {
                         ...filteredLore.slice(0, 3), // Keep header
                         `§8--- Entity ---`,
                         ...entityLore,
-                        "",
+                        '',
                     ];
 
                     newTool.setLore(newLore);
                     equippable.setEquipment(EquipmentSlot.Mainhand, newTool);
                 }
 
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aEntity copied! Code: §e${entityCode}`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Entity type: ${entityData.typeId.replace("minecraft:", "")}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aEntity copied! Code: §e${entityCode}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Entity type: ${entityData.typeId.replace('minecraft:', '')}`);
             }
         } catch (e) {
-            console.log("Error using copy entity tool: " + e);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to use copy entity tool!");
+            console.log('Error using copy entity tool: ' + e);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to use copy entity tool!');
         }
-    } else if (itemStack?.nameTag?.includes("§aCopy Entity Tool")) {
+    } else if (itemStack?.nameTag?.includes('§aCopy Entity Tool')) {
         spawnEntityFromTool(player, itemStack);
     }
 });
@@ -7362,16 +7623,16 @@ function spawnEntityFromTool(player, copyTool) {
 
             const amount = 1;
             const loreArray = copyTool.getLore();
-            let entityCode = "";
+            let entityCode = '';
 
             for (const lore of loreArray) {
-                if (lore.startsWith("§6Code: §f")) {
+                if (lore.startsWith('§6Code: §f')) {
                     entityCode = lore.slice(10);
                     break;
                 }
             }
-            if (entityCode == "") {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("No copied entities found in tool");
+            if (entityCode == '') {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('No copied entities found in tool');
                 return;
             }
             // Spawn entities
@@ -7391,27 +7652,27 @@ function spawnEntityFromTool(player, copyTool) {
                 player.runCommand(`execute as @s positioned ${location.x} ${location.y} ${location.z} run heal @e[r=64,type=!player,tag=setMaxHealth] health`);
                 player.runCommand(`execute as @s positioned ${location.x} ${location.y} ${location.z} run tag @e[r=64,type=!player,tag=setMaxHealth] remove setMaxHealth`);
             }, 10);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aSpawned: ${spawned}, Failed: ${failed}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aSpawned: ${spawned}, Failed: ${failed}`);
         } catch (e) {
-            console.log("Failed to load entity: " + e);
+            console.log('Failed to load entity: ' + e);
             if (player) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to load entity: ${e.message || e}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to load entity: ${e.message || e}`);
             }
         }
     });
 }
 
 // Main max enchant function
-function maxEnchantFunction(origin, variant = "all", targets = [origin.sourceEntity]) {
+function maxEnchantFunction(origin, variant = 'all', targets = [origin.sourceEntity]) {
     system.run(() => {
         try {
             for (const target of targets) {
                 applyMaxEnchantments(target, variant);
             }
         } catch (e) {
-            console.log("Failed to execute max enchant command: " + e);
+            console.log('Failed to execute max enchant command: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to apply enchantments: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to apply enchantments: ${e.message || e}`);
             }
         }
     });
@@ -7424,7 +7685,7 @@ function applyMaxEnchantments(player, variant) {
     try {
         const enchants = ENCHANT_DATA.filter((ed) => ed.slot == variant);
         for (const enchant of enchants) {
-            player.runCommand("enchant @s " + enchant.id + " " + enchant.level);
+            player.runCommand('enchant @s ' + enchant.id + ' ' + enchant.level);
         }
     } catch (e) {
         console.log(`Error applying enchantments: ${e}`);
@@ -7437,104 +7698,104 @@ function applyMaxEnchantments(player, variant) {
 
 const ENCHANT_DATA = [
     // Universal enchants
-    { id: "unbreaking", slot: "all", level: 3 },
-    { id: "mending", slot: "all", level: 1 },
+    { id: 'unbreaking', slot: 'all', level: 3 },
+    { id: 'mending', slot: 'all', level: 1 },
 
     // Sword - default (Sharpness build)
-    { id: "sharpness", slot: "sword", level: 5 },
-    { id: "fire_aspect", slot: "sword", level: 2 },
-    { id: "looting", slot: "sword", level: 3 },
-    { id: "unbreaking", slot: "sword", level: 3 },
-    { id: "mending", slot: "sword", level: 1 },
+    { id: 'sharpness', slot: 'sword', level: 5 },
+    { id: 'fire_aspect', slot: 'sword', level: 2 },
+    { id: 'looting', slot: 'sword', level: 3 },
+    { id: 'unbreaking', slot: 'sword', level: 3 },
+    { id: 'mending', slot: 'sword', level: 1 },
 
     // Sword - undead (Smite build)
-    { id: "smite", slot: "swordZombie", level: 5 },
-    { id: "fire_aspect", slot: "swordZombie", level: 2 },
-    { id: "looting", slot: "swordZombie", level: 3 },
-    { id: "unbreaking", slot: "swordZombie", level: 3 },
-    { id: "mending", slot: "swordZombie", level: 1 },
+    { id: 'smite', slot: 'swordZombie', level: 5 },
+    { id: 'fire_aspect', slot: 'swordZombie', level: 2 },
+    { id: 'looting', slot: 'swordZombie', level: 3 },
+    { id: 'unbreaking', slot: 'swordZombie', level: 3 },
+    { id: 'mending', slot: 'swordZombie', level: 1 },
 
     // Axe
-    { id: "sharpness", slot: "axe", level: 5 },
-    { id: "efficiency", slot: "axe", level: 5 },
-    { id: "unbreaking", slot: "axe", level: 3 },
-    { id: "mending", slot: "axe", level: 1 },
+    { id: 'sharpness', slot: 'axe', level: 5 },
+    { id: 'efficiency', slot: 'axe', level: 5 },
+    { id: 'unbreaking', slot: 'axe', level: 3 },
+    { id: 'mending', slot: 'axe', level: 1 },
 
     // Pickaxe
-    { id: "efficiency", slot: "pickaxe", level: 5 },
-    { id: "fortune", slot: "pickaxe", level: 3 },
-    { id: "unbreaking", slot: "pickaxe", level: 3 },
-    { id: "mending", slot: "pickaxe", level: 1 },
+    { id: 'efficiency', slot: 'pickaxe', level: 5 },
+    { id: 'fortune', slot: 'pickaxe', level: 3 },
+    { id: 'unbreaking', slot: 'pickaxe', level: 3 },
+    { id: 'mending', slot: 'pickaxe', level: 1 },
 
     // Shovel
-    { id: "efficiency", slot: "shovel", level: 5 },
-    { id: "fortune", slot: "shovel", level: 3 },
-    { id: "unbreaking", slot: "shovel", level: 3 },
-    { id: "mending", slot: "shovel", level: 1 },
+    { id: 'efficiency', slot: 'shovel', level: 5 },
+    { id: 'fortune', slot: 'shovel', level: 3 },
+    { id: 'unbreaking', slot: 'shovel', level: 3 },
+    { id: 'mending', slot: 'shovel', level: 1 },
 
     // Bow (Infinity build)
-    { id: "power", slot: "bowInfinity", level: 5 },
-    { id: "infinity", slot: "bowInfinity", level: 1 },
-    { id: "punch", slot: "bowInfinity", level: 2 },
-    { id: "flame", slot: "bowInfinity", level: 1 },
-    { id: "unbreaking", slot: "bowInfinity", level: 3 },
+    { id: 'power', slot: 'bowInfinity', level: 5 },
+    { id: 'infinity', slot: 'bowInfinity', level: 1 },
+    { id: 'punch', slot: 'bowInfinity', level: 2 },
+    { id: 'flame', slot: 'bowInfinity', level: 1 },
+    { id: 'unbreaking', slot: 'bowInfinity', level: 3 },
 
     // Bow (Mending build)
-    { id: "power", slot: "bowMending", level: 5 },
-    { id: "mending", slot: "bowMending", level: 1 },
-    { id: "punch", slot: "bowMending", level: 2 },
-    { id: "flame", slot: "bowMending", level: 1 },
-    { id: "unbreaking", slot: "bowMending", level: 3 },
+    { id: 'power', slot: 'bowMending', level: 5 },
+    { id: 'mending', slot: 'bowMending', level: 1 },
+    { id: 'punch', slot: 'bowMending', level: 2 },
+    { id: 'flame', slot: 'bowMending', level: 1 },
+    { id: 'unbreaking', slot: 'bowMending', level: 3 },
 
     // Crossbow
-    { id: "quick_charge", slot: "crossbow", level: 3 },
-    { id: "multishot", slot: "crossbow", level: 1 },
-    { id: "unbreaking", slot: "crossbow", level: 3 },
-    { id: "mending", slot: "crossbow", level: 1 },
+    { id: 'quick_charge', slot: 'crossbow', level: 3 },
+    { id: 'multishot', slot: 'crossbow', level: 1 },
+    { id: 'unbreaking', slot: 'crossbow', level: 3 },
+    { id: 'mending', slot: 'crossbow', level: 1 },
 
     // Helmet
-    { id: "protection", slot: "helmet", level: 4 },
-    { id: "respiration", slot: "helmet", level: 3 },
-    { id: "aqua_affinity", slot: "helmet", level: 1 },
-    { id: "unbreaking", slot: "helmet", level: 3 },
-    { id: "mending", slot: "helmet", level: 1 },
+    { id: 'protection', slot: 'helmet', level: 4 },
+    { id: 'respiration', slot: 'helmet', level: 3 },
+    { id: 'aqua_affinity', slot: 'helmet', level: 1 },
+    { id: 'unbreaking', slot: 'helmet', level: 3 },
+    { id: 'mending', slot: 'helmet', level: 1 },
 
     // Chestplate
-    { id: "protection", slot: "chestplate", level: 4 },
-    { id: "thorns", slot: "chestplate", level: 3 },
-    { id: "unbreaking", slot: "chestplate", level: 3 },
-    { id: "mending", slot: "chestplate", level: 1 },
+    { id: 'protection', slot: 'chestplate', level: 4 },
+    { id: 'thorns', slot: 'chestplate', level: 3 },
+    { id: 'unbreaking', slot: 'chestplate', level: 3 },
+    { id: 'mending', slot: 'chestplate', level: 1 },
 
     // Leggings
-    { id: "protection", slot: "leggings", level: 4 },
-    { id: "unbreaking", slot: "leggings", level: 3 },
-    { id: "mending", slot: "leggings", level: 1 },
+    { id: 'protection', slot: 'leggings', level: 4 },
+    { id: 'unbreaking', slot: 'leggings', level: 3 },
+    { id: 'mending', slot: 'leggings', level: 1 },
 
     // Boots
-    { id: "protection", slot: "boots", level: 4 },
-    { id: "feather_falling", slot: "boots", level: 4 },
-    { id: "depth_strider", slot: "boots", level: 3 },
-    { id: "unbreaking", slot: "boots", level: 3 },
-    { id: "mending", slot: "boots", level: 1 },
+    { id: 'protection', slot: 'boots', level: 4 },
+    { id: 'feather_falling', slot: 'boots', level: 4 },
+    { id: 'depth_strider', slot: 'boots', level: 3 },
+    { id: 'unbreaking', slot: 'boots', level: 3 },
+    { id: 'mending', slot: 'boots', level: 1 },
 
     // Trident (Loyalty build)
-    { id: "impaling", slot: "tridentLoyalty", level: 5 },
-    { id: "loyalty", slot: "tridentLoyalty", level: 3 },
-    { id: "channeling", slot: "tridentLoyalty", level: 1 },
-    { id: "unbreaking", slot: "tridentLoyalty", level: 3 },
-    { id: "mending", slot: "tridentLoyalty", level: 1 },
+    { id: 'impaling', slot: 'tridentLoyalty', level: 5 },
+    { id: 'loyalty', slot: 'tridentLoyalty', level: 3 },
+    { id: 'channeling', slot: 'tridentLoyalty', level: 1 },
+    { id: 'unbreaking', slot: 'tridentLoyalty', level: 3 },
+    { id: 'mending', slot: 'tridentLoyalty', level: 1 },
 
     // Trident (Riptide build)
-    { id: "impaling", slot: "tridentRiptide", level: 5 },
-    { id: "riptide", slot: "tridentRiptide", level: 3 },
-    { id: "unbreaking", slot: "tridentRiptide", level: 3 },
-    { id: "mending", slot: "tridentRiptide", level: 1 },
+    { id: 'impaling', slot: 'tridentRiptide', level: 5 },
+    { id: 'riptide', slot: 'tridentRiptide', level: 3 },
+    { id: 'unbreaking', slot: 'tridentRiptide', level: 3 },
+    { id: 'mending', slot: 'tridentRiptide', level: 1 },
 
     // Fishing Rod
-    { id: "luck_of_the_sea", slot: "fishing_rod", level: 3 },
-    { id: "lure", slot: "fishing_rod", level: 3 },
-    { id: "unbreaking", slot: "fishing_rod", level: 3 },
-    { id: "mending", slot: "fishing_rod", level: 1 },
+    { id: 'luck_of_the_sea', slot: 'fishing_rod', level: 3 },
+    { id: 'lure', slot: 'fishing_rod', level: 3 },
+    { id: 'unbreaking', slot: 'fishing_rod', level: 3 },
+    { id: 'mending', slot: 'fishing_rod', level: 1 },
 ];
 
 function mobFightFunction(origin, e1, e2) {
@@ -7544,14 +7805,14 @@ function mobFightFunction(origin, e1, e2) {
 
         const code = generateEntityCode();
 
-        entity1.addTag("entity1" + code);
-        entity2.addTag("entity2" + code);
+        entity1.addTag('entity1' + code);
+        entity2.addTag('entity2' + code);
 
         entity1.runCommand(`damage @e[tag=entity2${code}] 0 entity_attack entity @s`);
         entity2.runCommand(`damage @e[tag=entity1${code}] 0 entity_attack entity @s`);
 
-        entity1.removeTag("entity1" + code);
-        entity2.removeTag("entity2" + code);
+        entity1.removeTag('entity1' + code);
+        entity2.removeTag('entity2' + code);
     });
 
     return { status: CustomCommandStatus.Success };
@@ -7562,20 +7823,20 @@ function savePositionFunction(origin, locationName) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Save position requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Save position requires a player');
                 return;
             }
 
             // Validate location name (alphanumeric and underscores only)
-            const cleanName = locationName.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
+            const cleanName = locationName.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
             if (cleanName.length === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid location name! Use only letters, numbers, and underscores.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid location name! Use only letters, numbers, and underscores.');
                 return;
             }
 
             if (cleanName.length > 20) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cLocation name too long! Maximum 20 characters.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cLocation name too long! Maximum 20 characters.');
                 return;
             }
 
@@ -7587,24 +7848,24 @@ function savePositionFunction(origin, locationName) {
             const positionTag = `tps_${dimension}_${Math.floor(location.x)}_${Math.floor(location.y)}_${Math.floor(location.z)}_${cleanName}`;
 
             // Check if location name already exists
-            const existingTags = player.getTags().filter((tag) => tag.startsWith("tps_") && tag.endsWith(`_${cleanName}`));
+            const existingTags = player.getTags().filter((tag) => tag.startsWith('tps_') && tag.endsWith(`_${cleanName}`));
             if (existingTags.length > 0) {
                 // Remove old tag with same name
                 for (const oldTag of existingTags) {
                     player.removeTag(oldTag);
                 }
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§eUpdated existing location: ${cleanName}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§eUpdated existing location: ${cleanName}`);
             }
 
             // Add new position tag
             player.addTag(positionTag);
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aPosition saved as: §f${cleanName}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Location: ${Math.floor(location.x)}, ${Math.floor(location.y)}, ${Math.floor(location.z)} (${dimension})`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aPosition saved as: §f${cleanName}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Location: ${Math.floor(location.x)}, ${Math.floor(location.y)}, ${Math.floor(location.z)} (${dimension})`);
         } catch (e) {
-            console.log("Failed to save position: " + e);
+            console.log('Failed to save position: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to save position: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to save position: ${e.message || e}`);
             }
         }
     });
@@ -7617,8 +7878,8 @@ function tpsFunction(origin, locationName = null) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("TPS requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('TPS requires a player');
                 return;
             }
 
@@ -7629,12 +7890,12 @@ function tpsFunction(origin, locationName = null) {
             }
 
             // Find and teleport to named location
-            const cleanName = locationName.replace(/[^a-zA-Z0-9_]/g, "").toLowerCase();
+            const cleanName = locationName.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
             teleportToSavedLocation(player, cleanName);
         } catch (e) {
-            console.log("Failed to teleport: " + e);
+            console.log('Failed to teleport: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to teleport: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to teleport: ${e.message || e}`);
             }
         }
     });
@@ -7647,16 +7908,16 @@ function tpsgFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("TPSG requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('TPSG requires a player');
                 return;
             }
 
             showTeleportGUI(player);
         } catch (e) {
-            console.log("Failed to open teleport GUI: " + e);
+            console.log('Failed to open teleport GUI: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to open teleport GUI: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to open teleport GUI: ${e.message || e}`);
             }
         }
     });
@@ -7671,14 +7932,14 @@ function showTeleportGUI(player) {
         const savedPositions = getSavedPositions(player);
 
         if (savedPositions.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo saved positions found! Use /saveposition <name> to save locations.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo saved positions found! Use /saveposition <name> to save locations.');
             return;
         }
 
         // Create action form with buttons for each position
         const form = new ActionFormData()
-            .title("§6Teleport to Saved Position")
-            .body(`§8Select a location to teleport to:\n§2You have ${savedPositions.length} saved position${savedPositions.length > 1 ? "s" : ""}`);
+            .title('§6Teleport to Saved Position')
+            .body(`§8Select a location to teleport to:\n§2You have ${savedPositions.length} saved position${savedPositions.length > 1 ? 's' : ''}`);
 
         // Add button for each saved position
         for (const pos of savedPositions) {
@@ -7687,8 +7948,8 @@ function showTeleportGUI(player) {
         }
 
         // Add management buttons
-        form.button("§4Delete Position\n§4Remove a saved location");
-        form.button("§eList All Positions\n§eShow all saved locations in chat");
+        form.button('§4Delete Position\n§4Remove a saved location');
+        form.button('§eList All Positions\n§eShow all saved locations in chat');
 
         form.show(player).then((response) => {
             if (response.canceled) return;
@@ -7708,14 +7969,14 @@ function showTeleportGUI(player) {
             }
         });
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to open teleport GUI!");
-        console.log("Failed to show teleport GUI: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to open teleport GUI!');
+        console.log('Failed to show teleport GUI: ' + e);
     }
 }
 
 // Show delete position GUI
 function showDeletePositionGUI(player, savedPositions) {
-    const form = new ActionFormData().title("§4Delete Saved Position").body("§4Select a position to delete:");
+    const form = new ActionFormData().title('§4Delete Saved Position').body('§4Select a position to delete:');
 
     for (const pos of savedPositions) {
         const buttonText = `§2${pos.name}\n§8${pos.x}, ${pos.y}, ${pos.z} (${pos.dimension})`;
@@ -7729,7 +7990,7 @@ function showDeletePositionGUI(player, savedPositions) {
 
         // Remove the tag
         player.removeTag(selectedPos.fullTag);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aDeleted saved position: §f${selectedPos.name}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aDeleted saved position: §f${selectedPos.name}`);
     });
 }
 
@@ -7739,7 +8000,7 @@ function getSavedPositions(player) {
     const tags = player.getTags();
 
     for (const tag of tags) {
-        if (tag.startsWith("tps_")) {
+        if (tag.startsWith('tps_')) {
             const parsed = parsePositionTag(tag);
             if (parsed) {
                 positions.push(parsed);
@@ -7757,14 +8018,14 @@ function getSavedPositions(player) {
 function parsePositionTag(tag) {
     try {
         // Format: tps_dim_x_y_z_name
-        const parts = tag.split("_");
+        const parts = tag.split('_');
         if (parts.length < 6) return null;
 
         const dimension = parts[1];
         const x = parseInt(parts[2]);
         const y = parseInt(parts[3]);
         const z = parseInt(parts[4]);
-        const name = parts.slice(5).join("_"); // Handle names with underscores
+        const name = parts.slice(5).join('_'); // Handle names with underscores
 
         return {
             fullTag: tag,
@@ -7787,13 +8048,13 @@ function teleportToSavedLocation(player, locationName) {
     const targetPosition = savedPositions.find((pos) => pos.name === locationName);
 
     if (!targetPosition) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cSaved location '${locationName}' not found!`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cSaved location '${locationName}' not found!`);
 
         if (savedPositions.length > 0) {
             const suggestions = savedPositions.slice(0, 5).map((pos) => pos.name);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Available locations: ${suggestions.join(", ")}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Available locations: ${suggestions.join(', ')}`);
         } else {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Use /saveposition <name> to save locations.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Use /saveposition <name> to save locations.');
         }
         return;
     }
@@ -7810,54 +8071,54 @@ function teleportToPosition(player, position) {
         // Teleport to the dimension and position
         player.teleport(teleportLocation, { dimension: targetDimension });
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aTeleported to: §f${position.name}`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Location: ${position.x}, ${position.y}, ${position.z} (${position.dimensionFull})`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aTeleported to: §f${position.name}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Location: ${position.x}, ${position.y}, ${position.z} (${position.dimensionFull})`);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to teleport to ${position.name}: ${e.message || e}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to teleport to ${position.name}: ${e.message || e}`);
         console.log(`Teleport error: ${e}`);
     }
 }
 
 // List all positions in chat
 function listAllPositions(player, savedPositions) {
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Your Saved Positions ---");
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Total: ${savedPositions.length} location${savedPositions.length > 1 ? "s" : ""}`);
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Your Saved Positions ---');
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Total: ${savedPositions.length} location${savedPositions.length > 1 ? 's' : ''}`);
 
     if (savedPositions.length === 0) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7No saved positions. Use /saveposition <name> to save locations.");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7No saved positions. Use /saveposition <name> to save locations.');
         return;
     }
 
     for (let i = 0; i < savedPositions.length; i++) {
         const pos = savedPositions[i];
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§f${i + 1}. ${pos.name} §7- ${pos.x}, ${pos.y}, ${pos.z} (${pos.dimensionFull})`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§f${i + 1}. ${pos.name} §7- ${pos.x}, ${pos.y}, ${pos.z} (${pos.dimensionFull})`);
     }
 
-    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Use /tps <name> or /tpsg to teleport");
+    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Use /tps <name> or /tpsg to teleport');
 }
 
 // Helper functions
 function getDimensionShortName(dimensionId) {
     switch (dimensionId) {
-        case "minecraft:overworld":
-            return "ow";
-        case "minecraft:nether":
-            return "nether";
-        case "minecraft:the_end":
-            return "end";
+        case 'minecraft:overworld':
+            return 'ow';
+        case 'minecraft:nether':
+            return 'nether';
+        case 'minecraft:the_end':
+            return 'end';
         default:
-            return dimensionId.replace("minecraft:", "");
+            return dimensionId.replace('minecraft:', '');
     }
 }
 
 function getDimensionFullName(shortName) {
     switch (shortName) {
-        case "ow":
-            return "minecraft:overworld";
-        case "nether":
-            return "minecraft:nether";
-        case "end":
-            return "minecraft:the_end";
+        case 'ow':
+            return 'minecraft:overworld';
+        case 'nether':
+            return 'minecraft:nether';
+        case 'end':
+            return 'minecraft:the_end';
         default:
             return `minecraft:${shortName}`;
     }
@@ -7867,12 +8128,12 @@ function clearPositionsFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const savedPositions = getSavedPositions(player);
 
             if (savedPositions.length === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7No saved positions to clear.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7No saved positions to clear.');
                 return;
             }
 
@@ -7881,9 +8142,9 @@ function clearPositionsFunction(origin) {
                 player.removeTag(pos.fullTag);
             }
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aCleared ${savedPositions.length} saved position${savedPositions.length > 1 ? "s" : ""}!`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aCleared ${savedPositions.length} saved position${savedPositions.length > 1 ? 's' : ''}!`);
         } catch (e) {
-            console.log("Failed to clear positions: " + e);
+            console.log('Failed to clear positions: ' + e);
         }
     });
 
@@ -7894,17 +8155,17 @@ function rtpFunction(origin, minDistance = 100, maxDistance = 2000) {
     system.run(() => {
         try {
             const player = origin?.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.warn("RTP requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.warn('RTP requires a player');
                 return;
             }
 
             if (minDistance < 0 || maxDistance < minDistance) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid distance values!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid distance values!');
                 return;
             }
             if (maxDistance > 100000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cMax distance too large! Max is 100,000 blocks.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cMax distance too large! Max is 100,000 blocks.');
                 return;
             }
 
@@ -7914,10 +8175,10 @@ function rtpFunction(origin, minDistance = 100, maxDistance = 2000) {
             const targetZ = Math.floor(player.location.z + Math.sin(angle) * distance);
             const highY = 250; // Drop from top of world
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Teleporting to random location...");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Teleporting to random location...');
 
             // Give temporary immunity
-            player.addEffect("resistance", 5 * 20, { amplifier: 255 });
+            player.addEffect('resistance', 5 * 20, { amplifier: 255 });
 
             // Initial teleport (will load chunk)
             player.teleport({ x: targetX + 0.5, y: highY, z: targetZ + 0.5 }, { dimension: player.dimension });
@@ -7927,15 +8188,15 @@ function rtpFunction(origin, minDistance = 100, maxDistance = 2000) {
                 const safeY = findGroundBelow(player);
                 if (safeY !== null) {
                     player.teleport({ x: targetX + 0.5, y: safeY, z: targetZ + 0.5 }, { dimension: player.dimension });
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aRandom teleport successful! (${targetX}, ${safeY}, ${targetZ})`);
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aRandom teleport successful! (${targetX}, ${safeY}, ${targetZ})`);
                 } else {
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cCouldn't find safe ground here, staying at high Y.");
-                    player.runCommand("rtp 100 500");
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage("§cCouldn't find safe ground here, staying at high Y.");
+                    player.runCommand('rtp 100 500');
                 }
             }, 60); // 20 ticks = 1s
         } catch (e) {
-            console.error("RTP error: " + e);
-            if (!origin?.sourceEntity?.hasTag("dontshowcommandlogs")) origin?.sourceEntity?.sendMessage(`§cRTP failed: ${e.message || e}`);
+            console.error('RTP error: ' + e);
+            if (!origin?.sourceEntity?.hasTag('dontshowcommandlogs')) origin?.sourceEntity?.sendMessage(`§cRTP failed: ${e.message || e}`);
         }
     });
 
@@ -7954,7 +8215,7 @@ function findGroundBelow(player) {
                 y: yy + 1,
                 z: Math.floor(z),
             });
-            if (block && above && block.typeId !== "minecraft:air" && block.typeId !== "minecraft:water" && block.typeId !== "minecraft:lava" && above.typeId === "minecraft:air") {
+            if (block && above && block.typeId !== 'minecraft:air' && block.typeId !== 'minecraft:water' && block.typeId !== 'minecraft:lava' && above.typeId === 'minecraft:air') {
                 return yy + 1;
             }
         }
@@ -7968,7 +8229,7 @@ function findGroundBelow(player) {
 function helpFunction(origin) {
     system.run(() => {
         for (const cmd of COMMANDS) {
-            if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§2${cmd.command} - §e${cmd.description}`);
+            if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§2${cmd.command} - §e${cmd.description}`);
         }
     });
 
@@ -7976,12 +8237,12 @@ function helpFunction(origin) {
 }
 
 // Main search function
-function searchFunction(origin, searchQuery = "") {
+function searchFunction(origin, searchQuery = '') {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Search requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Search requires a player');
                 return;
             }
 
@@ -7991,9 +8252,9 @@ function searchFunction(origin, searchQuery = "") {
             if (results.length === 0) {
                 if (searchQuery) {
                     player.sendMessage(`§cNo commands found matching: "${searchQuery}"`);
-                    player.sendMessage("§7Try different keywords like: lore, block, teleport, heal");
+                    player.sendMessage('§7Try different keywords like: lore, block, teleport, heal');
                 } else {
-                    player.sendMessage("§cNo commands available in search database.");
+                    player.sendMessage('§cNo commands available in search database.');
                 }
                 return;
             }
@@ -8001,9 +8262,9 @@ function searchFunction(origin, searchQuery = "") {
             // Show search GUI
             showSearchGUI(player, results, searchQuery);
         } catch (e) {
-            console.log("Failed to execute search: " + e);
+            console.log('Failed to execute search: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to search commands: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to search commands: ${e.message || e}`);
             }
         }
     });
@@ -8013,14 +8274,14 @@ function searchFunction(origin, searchQuery = "") {
 
 // Search through commands array
 function searchCommands(query) {
-    if (!query || query.trim() === "") {
+    if (!query || query.trim() === '') {
         // Return all commands if no query
         return COMMANDS.slice(0, 30);
     }
 
     const searchTerms = query
         .toLowerCase()
-        .split(" ")
+        .split(' ')
         .filter((term) => term.length > 0);
     const results = [];
 
@@ -8070,9 +8331,9 @@ function searchCommands(query) {
 // Show search results GUI
 function showSearchGUI(player, results, searchQuery) {
     try {
-        const queryText = searchQuery ? `"${searchQuery}"` : "all commands";
+        const queryText = searchQuery ? `"${searchQuery}"` : 'all commands';
 
-        const form = new ActionFormData().title("§6Command Search").body(`§7Search results for: §f${queryText}\n§2Found ${results.length} command${results.length > 1 ? "s" : ""}`);
+        const form = new ActionFormData().title('§6Command Search').body(`§7Search results for: §f${queryText}\n§2Found ${results.length} command${results.length > 1 ? 's' : ''}`);
 
         // Add button for each command result
         for (let i = 0; i < results.length; i++) {
@@ -8083,7 +8344,7 @@ function showSearchGUI(player, results, searchQuery) {
 
             // Add matched terms indicator if search was performed
             if (searchQuery && cmd.matchedTerms && cmd.matchedTerms.length > 0) {
-                buttonText += `\n§8Matched: ${cmd.matchedTerms.join(", ")}`;
+                buttonText += `\n§8Matched: ${cmd.matchedTerms.join(', ')}`;
             }
 
             form.button(buttonText);
@@ -8091,10 +8352,10 @@ function showSearchGUI(player, results, searchQuery) {
 
         // Add utility buttons
         if (searchQuery) {
-            form.button("§eNew Search\n§8Search with different keywords");
+            form.button('§eNew Search\n§8Search with different keywords');
         }
-        form.button("§2Browse All\n§8Show all available commands");
-        form.button("§4Close\n§8Exit search");
+        form.button('§2Browse All\n§8Show all available commands');
+        form.button('§4Close\n§8Exit search');
 
         form.show(player).then((response) => {
             if (response.canceled) return;
@@ -8113,34 +8374,34 @@ function showSearchGUI(player, results, searchQuery) {
                 } else if ((searchQuery && utilityIndex === 1) || (!searchQuery && utilityIndex === 0)) {
                     // Browse all
                     const allResults = COMMANDS.slice(0, 100);
-                    showSearchGUI(player, allResults, "");
+                    showSearchGUI(player, allResults, '');
                 }
                 // Close option does nothing (form closes automatically)
             }
         });
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to show search GUI!");
-        console.log("Search GUI error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to show search GUI!');
+        console.log('Search GUI error: ' + e);
     }
 }
 
-function insertSmartLineBreaks(text, maxLength = 35, colorCode = "7", breakLongWords = true) {
-    if (!text || typeof text !== "string") return "";
+function insertSmartLineBreaks(text, maxLength = 35, colorCode = '7', breakLongWords = true) {
+    if (!text || typeof text !== 'string') return '';
 
     const colorPrefix = `§${colorCode}`;
     const textF = colorPrefix + text;
     const words = textF.split(/(\s+)/); // Split but keep whitespace
     const lines = [];
-    let currentLine = "";
+    let currentLine = '';
 
     // Helper function to calculate visible length
     function getVisibleLength(str) {
         return (
             str
                 // Remove color codes (§ followed by any character)
-                .replace(/§./g, "")
+                .replace(/§./g, '')
                 // Convert double %% to single % (counts as 1 character)
-                .replace(/%%/g, "%").length
+                .replace(/%%/g, '%').length
         );
     }
 
@@ -8151,7 +8412,7 @@ function insertSmartLineBreaks(text, maxLength = 35, colorCode = "7", breakLongW
                 currentLine += word;
             } else {
                 lines.push(currentLine);
-                currentLine = "";
+                currentLine = '';
             }
             continue;
         }
@@ -8162,26 +8423,26 @@ function insertSmartLineBreaks(text, maxLength = 35, colorCode = "7", breakLongW
             // Add current line if it has content
             if (currentLine.trim()) {
                 lines.push(currentLine);
-                currentLine = "";
+                currentLine = '';
             }
 
             // Break the long word into chunks based on visible length
             let remainingWord = word;
             while (remainingWord) {
-                let chunk = "";
+                let chunk = '';
                 let visibleCount = 0;
                 let i = 0;
 
                 while (i < remainingWord.length && visibleCount < maxLength) {
                     const char = remainingWord[i];
 
-                    if (char === "§" && i + 1 < remainingWord.length) {
+                    if (char === '§' && i + 1 < remainingWord.length) {
                         // Add color code (doesn't count toward visible length)
                         chunk += remainingWord.slice(i, i + 2);
                         i += 2;
-                    } else if (char === "%" && i + 1 < remainingWord.length && remainingWord[i + 1] === "%") {
+                    } else if (char === '%' && i + 1 < remainingWord.length && remainingWord[i + 1] === '%') {
                         // Add double %% (counts as 1 visible character)
-                        chunk += "%%";
+                        chunk += '%%';
                         visibleCount++;
                         i += 2;
                     } else {
@@ -8222,11 +8483,11 @@ function showCommandDetails(player, command, allResults, originalQuery) {
         detailText += `§7Description:\n§f${command.description}\n\n`;
 
         if (command.keyWords && command.keyWords.length > 0) {
-            detailText += `§7Keywords:\n§f${command.keyWords.join(", ")}\n\n`;
+            detailText += `§7Keywords:\n§f${command.keyWords.join(', ')}\n\n`;
         }
 
         if (command.matchedTerms && command.matchedTerms.length > 0) {
-            detailText += `§7Matched Terms:\n§e${command.matchedTerms.join(", ")}\n\n`;
+            detailText += `§7Matched Terms:\n§e${command.matchedTerms.join(', ')}\n\n`;
         }
 
         // Add usage examples if available
@@ -8239,10 +8500,10 @@ function showCommandDetails(player, command, allResults, originalQuery) {
 
         const form = new ActionFormData()
             .title(`§6${command.command}`)
-            .body(insertSmartLineBreaks(detailText, 45, "f", false))
-            .button("§aBack to Results\n§8Return to search results")
-            .button("§eCopy Command\n§8Copy command to chat")
-            .button("§7Close\n§8Exit command info");
+            .body(insertSmartLineBreaks(detailText, 45, 'f', false))
+            .button('§aBack to Results\n§8Return to search results')
+            .button('§eCopy Command\n§8Copy command to chat')
+            .button('§7Close\n§8Exit command info');
 
         form.show(player).then((response) => {
             if (response.canceled) return;
@@ -8252,8 +8513,8 @@ function showCommandDetails(player, command, allResults, originalQuery) {
                     showSearchGUI(player, allResults, originalQuery);
                     break;
                 case 1: // Copy command (simulate by showing in chat)
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Command: §f${command.command}`);
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Command copied to chat!");
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Command: §f${command.command}`);
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Command copied to chat!');
                     break;
                 case 2: // Close
                 default:
@@ -8262,8 +8523,8 @@ function showCommandDetails(player, command, allResults, originalQuery) {
             }
         });
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to show command details!");
-        console.log("Command details error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to show command details!');
+        console.log('Command details error: ' + e);
     }
 }
 
@@ -8271,18 +8532,18 @@ function showCommandDetails(player, command, allResults, originalQuery) {
 function showSearchInputGUI(player) {
     try {
         const form = new ModalFormData()
-            .title("§6New Command Search")
-            .textField("Search Query:", "Enter keywords or command name")
-            .dropdown("Search Mode", ["Keyword Search", "Command Name", "Description Only"])
-            .toggle("Show Advanced Info");
+            .title('§6New Command Search')
+            .textField('Search Query:', 'Enter keywords or command name')
+            .dropdown('Search Mode', ['Keyword Search', 'Command Name', 'Description Only'])
+            .toggle('Show Advanced Info');
 
         form.show(player).then((response) => {
             if (response.canceled) return;
 
             const [searchQuery, searchMode, showAdvanced] = response.formValues;
 
-            if (!searchQuery || searchQuery.trim() === "") {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cPlease enter a search query!");
+            if (!searchQuery || searchQuery.trim() === '') {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cPlease enter a search query!');
                 return;
             }
 
@@ -8302,15 +8563,15 @@ function showSearchInputGUI(player) {
             }
 
             if (results.length === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cNo commands found for: "${searchQuery}"`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cNo commands found for: "${searchQuery}"`);
                 return;
             }
 
             showSearchGUI(player, results, searchQuery);
         });
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to show search input!");
-        console.log("Search input error: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to show search input!');
+        console.log('Search input error: ' + e);
     }
 }
 
@@ -8337,7 +8598,7 @@ function searchCommandsByName(query) {
 function searchCommandsByDescription(query) {
     const searchTerms = query
         .toLowerCase()
-        .split(" ")
+        .split(' ')
         .filter((term) => term.length > 0);
     const results = [];
 
@@ -8371,16 +8632,16 @@ function throwTagToolFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Throw tag tool requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Throw tag tool requires a player');
                 return;
             }
 
             createThrowTagTool(player);
         } catch (e) {
-            console.log("Failed to create throw tag tool: " + e);
+            console.log('Failed to create throw tag tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create throw tag tool: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create throw tag tool: ${e.message || e}`);
             }
         }
     });
@@ -8391,24 +8652,24 @@ function throwTagToolFunction(origin) {
 // Create throw tag tool
 function createThrowTagTool(player) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
 
         // Create throw tag tool
-        const tagTool = new ItemStack("minecraft:lime_dye", 1);
-        tagTool.nameTag = "§2Throw Tag Tool";
+        const tagTool = new ItemStack('minecraft:lime_dye', 1);
+        tagTool.nameTag = '§2Throw Tag Tool';
 
-        const loreLines = ["§7Right-click to apply tags to target entity", "§7Range: 30 blocks", "§8§l--- TAGS TO APPLY ---", "§7No tags configured", "§7Use /tagtooladd <tag> to add tags"];
+        const loreLines = ['§7Right-click to apply tags to target entity', '§7Range: 30 blocks', '§8§l--- TAGS TO APPLY ---', '§7No tags configured', '§7Use /tagtooladd <tag> to add tags'];
 
         tagTool.setLore(loreLines);
 
         equippable.setEquipment(EquipmentSlot.Mainhand, tagTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aThrow Tag Tool created!");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Right-click entities to apply tags");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Use /tagtooladd <tag> to add tags to the tool");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aThrow Tag Tool created!');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Right-click entities to apply tags');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Use /tagtooladd <tag> to add tags to the tool');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create throw tag tool: ${e}`);
-        console.log("Failed to create throw tag tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create throw tag tool: ${e}`);
+        console.log('Failed to create throw tag tool: ' + e);
     }
 }
 
@@ -8417,16 +8678,16 @@ function removeTagToolFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Remove tag tool requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Remove tag tool requires a player');
                 return;
             }
 
             createRemoveTagTool(player);
         } catch (e) {
-            console.log("Failed to create remove tag tool: " + e);
+            console.log('Failed to create remove tag tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create remove tag tool: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create remove tag tool: ${e.message || e}`);
             }
         }
     });
@@ -8437,23 +8698,23 @@ function removeTagToolFunction(origin) {
 // Create remove tag tool
 function createRemoveTagTool(player) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
 
         // Create remove tag tool
-        const removeTool = new ItemStack("minecraft:red_dye", 1);
-        removeTool.nameTag = "§cRemove Tag Tool";
+        const removeTool = new ItemStack('minecraft:red_dye', 1);
+        removeTool.nameTag = '§cRemove Tag Tool';
 
-        const loreLines = ["§7Right-click to remove all tags from target entity", "§7Range: 30 blocks", "§7This will remove ALL tags from the entity"];
+        const loreLines = ['§7Right-click to remove all tags from target entity', '§7Range: 30 blocks', '§7This will remove ALL tags from the entity'];
 
         removeTool.setLore(loreLines);
 
         equippable.setEquipment(EquipmentSlot.Mainhand, removeTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cRemove Tag Tool created!");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Right-click entities to remove all their tags");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cRemove Tag Tool created!');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Right-click entities to remove all their tags');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create remove tag tool: ${e}`);
-        console.log("Failed to create remove tag tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create remove tag tool: ${e}`);
+        console.log('Failed to create remove tag tool: ' + e);
     }
 }
 
@@ -8462,25 +8723,25 @@ function tagToolAddFunction(origin, tagToAdd) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
             const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
-            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Throw Tag Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must be holding a Throw Tag Tool!");
+            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Throw Tag Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must be holding a Throw Tag Tool!');
                 return;
             }
 
             // Validate tag name
-            const cleanTag = tagToAdd.replace(/[^a-zA-Z0-9_.-]/g, "");
+            const cleanTag = tagToAdd.replace(/[^a-zA-Z0-9_.-]/g, '');
             if (cleanTag.length === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid tag name! Use only letters, numbers, dots, dashes, and underscores.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid tag name! Use only letters, numbers, dots, dashes, and underscores.');
                 return;
             }
 
             if (cleanTag.length > 50) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cTag name too long! Maximum 50 characters.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cTag name too long! Maximum 50 characters.');
                 return;
             }
 
@@ -8489,26 +8750,26 @@ function tagToolAddFunction(origin, tagToAdd) {
 
             // Check if tag already exists
             if (currentTags.includes(cleanTag)) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§eTag "${cleanTag}" already exists in tool!`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§eTag "${cleanTag}" already exists in tool!`);
                 return;
             }
 
             // Check tag limit
             if (currentTags.length >= 20) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cTag limit reached! Maximum 20 tags per tool.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cTag limit reached! Maximum 20 tags per tool.');
                 return;
             }
 
             // Add tag to tool
             currentTags.push(cleanTag);
-            updateToolLore(player, heldItem, currentTags, "add");
+            updateToolLore(player, heldItem, currentTags, 'add');
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aAdded tag: §f${cleanTag}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Tool now has ${currentTags.length} tag${currentTags.length > 1 ? "s" : ""}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aAdded tag: §f${cleanTag}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Tool now has ${currentTags.length} tag${currentTags.length > 1 ? 's' : ''}`);
         } catch (e) {
-            console.log("Failed to add tag to tool: " + e);
+            console.log('Failed to add tag to tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to add tag: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to add tag: ${e.message || e}`);
             }
         }
     });
@@ -8521,13 +8782,13 @@ function tagToolRemoveFunction(origin, tagToRemove) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
             const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
-            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Throw Tag Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must be holding a Throw Tag Tool!");
+            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Throw Tag Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must be holding a Throw Tag Tool!');
                 return;
             }
 
@@ -8537,23 +8798,23 @@ function tagToolRemoveFunction(origin, tagToRemove) {
             // Find and remove tag
             const tagIndex = currentTags.indexOf(tagToRemove);
             if (tagIndex === -1) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cTag "${tagToRemove}" not found in tool!`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cTag "${tagToRemove}" not found in tool!`);
 
                 if (currentTags.length > 0) {
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Available tags: ${currentTags.slice(0, 5).join(", ")}${currentTags.length > 5 ? "..." : ""}`);
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Available tags: ${currentTags.slice(0, 5).join(', ')}${currentTags.length > 5 ? '...' : ''}`);
                 }
                 return;
             }
 
             currentTags.splice(tagIndex, 1);
-            updateToolLore(player, heldItem, currentTags, "remove");
+            updateToolLore(player, heldItem, currentTags, 'remove');
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aRemoved tag: §f${tagToRemove}`);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Tool now has ${currentTags.length} tag${currentTags.length > 1 ? "s" : ""}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aRemoved tag: §f${tagToRemove}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Tool now has ${currentTags.length} tag${currentTags.length > 1 ? 's' : ''}`);
         } catch (e) {
-            console.log("Failed to remove tag from tool: " + e);
+            console.log('Failed to remove tag from tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to remove tag: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to remove tag: ${e.message || e}`);
             }
         }
     });
@@ -8566,13 +8827,13 @@ function tagToolClearFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
-            const equippable = player.getComponent("minecraft:equippable");
+            const equippable = player.getComponent('minecraft:equippable');
             const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
-            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Throw Tag Tool")) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cYou must be holding a Throw Tag Tool!");
+            if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Throw Tag Tool')) {
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cYou must be holding a Throw Tag Tool!');
                 return;
             }
 
@@ -8581,18 +8842,18 @@ function tagToolClearFunction(origin) {
             const tagCount = currentTags.length;
 
             if (tagCount === 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Tool has no tags to clear.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Tool has no tags to clear.');
                 return;
             }
 
             // Clear all tags
-            updateToolLore(player, heldItem, [], "clear");
+            updateToolLore(player, heldItem, [], 'clear');
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aCleared ${tagCount} tag${tagCount > 1 ? "s" : ""} from tool!`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aCleared ${tagCount} tag${tagCount > 1 ? 's' : ''} from tool!`);
         } catch (e) {
-            console.log("Failed to clear tags from tool: " + e);
+            console.log('Failed to clear tags from tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to clear tags: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to clear tags: ${e.message || e}`);
             }
         }
     });
@@ -8607,20 +8868,20 @@ function getTagsFromTool(item) {
     let foundTagSection = false;
 
     for (const line of loreArray) {
-        if (line === "§8§l--- TAGS TO APPLY ---") {
+        if (line === '§8§l--- TAGS TO APPLY ---') {
             foundTagSection = true;
             continue;
         }
 
         if (foundTagSection) {
             // Skip info lines
-            if (line.includes("No tags configured") || line.includes("Use /tagtooladd")) {
+            if (line.includes('No tags configured') || line.includes('Use /tagtooladd')) {
                 continue;
             }
 
             // Extract tag from format "§a• tagname"
-            if (line.startsWith("§a• ")) {
-                const tag = line.replace("§a• ", "");
+            if (line.startsWith('§a• ')) {
+                const tag = line.replace('§a• ', '');
                 tags.push(tag);
             }
         }
@@ -8632,16 +8893,16 @@ function getTagsFromTool(item) {
 // Update tool lore with new tags
 function updateToolLore(player, item, tags, action) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
         const newTool = item.clone();
 
-        const loreLines = ["§7Right-click to apply tags to target entity", "§7Range: 30 blocks", "§8§l--- TAGS TO APPLY ---"];
+        const loreLines = ['§7Right-click to apply tags to target entity', '§7Range: 30 blocks', '§8§l--- TAGS TO APPLY ---'];
 
         if (tags.length === 0) {
-            loreLines.push("§7No tags configured");
-            loreLines.push("§7Use /tagtooladd <tag> to add tags");
+            loreLines.push('§7No tags configured');
+            loreLines.push('§7Use /tagtooladd <tag> to add tags');
         } else {
-            loreLines.push(`§7${tags.length} tag${tags.length > 1 ? "s" : ""} configured:`);
+            loreLines.push(`§7${tags.length} tag${tags.length > 1 ? 's' : ''} configured:`);
 
             // Add each tag
             for (const tag of tags) {
@@ -8649,8 +8910,8 @@ function updateToolLore(player, item, tags, action) {
             }
 
             // Add help text
-            loreLines.push("");
-            loreLines.push("§7Use /tagtoolremove <tag> to remove");
+            loreLines.push('');
+            loreLines.push('§7Use /tagtoolremove <tag> to remove');
         }
 
         newTool.setLore(loreLines);
@@ -8662,7 +8923,7 @@ function updateToolLore(player, item, tags, action) {
 
 // Event handler for tag tool usage
 world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.source.typeId !== "minecraft:player" || !ev.itemStack) return;
+    if (ev.source.typeId !== 'minecraft:player' || !ev.itemStack) return;
 
     const player = ev.source;
     const itemStack = ev.itemStack;
@@ -8671,14 +8932,14 @@ world.afterEvents.itemUse.subscribe((ev) => {
     if (!itemStack.nameTag) return;
 
     try {
-        if (itemStack.nameTag.includes("Throw Tag Tool")) {
+        if (itemStack.nameTag.includes('Throw Tag Tool')) {
             handleThrowTagTool(player, itemStack);
-        } else if (itemStack.nameTag.includes("Remove Tag Tool")) {
+        } else if (itemStack.nameTag.includes('Remove Tag Tool')) {
             handleRemoveTagTool(player, itemStack);
         }
     } catch (e) {
-        console.log("Error using tag tool: " + e);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to use tag tool!");
+        console.log('Error using tag tool: ' + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to use tag tool!');
     }
 });
 
@@ -8691,14 +8952,14 @@ function handleThrowTagTool(player, tagTool) {
         });
 
         if (!entitiesFromView || entitiesFromView.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo entity found in view direction within 30 blocks!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo entity found in view direction within 30 blocks!');
             return;
         }
 
         const targetEntity = entitiesFromView[0].entity;
 
         if (!targetEntity || targetEntity === player) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid target entity!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid target entity!');
             return;
         }
 
@@ -8706,7 +8967,7 @@ function handleThrowTagTool(player, tagTool) {
         const tagsToApply = getTagsFromTool(tagTool);
 
         if (tagsToApply.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo tags configured in tool! Use /tagtooladd <tag> to add tags.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo tags configured in tool! Use /tagtooladd <tag> to add tags.');
             return;
         }
 
@@ -8729,26 +8990,26 @@ function handleThrowTagTool(player, tagTool) {
 
         // Show results
         const distance = Math.floor(entitiesFromView[0].distance);
-        const entityType = targetEntity.typeId.replace("minecraft:", "");
+        const entityType = targetEntity.typeId.replace('minecraft:', '');
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aTarget: §f${entityType} §7(${distance} blocks)`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aTarget: §f${entityType} §7(${distance} blocks)`);
 
         if (appliedCount > 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aApplied ${appliedCount} new tag${appliedCount > 1 ? "s" : ""}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aApplied ${appliedCount} new tag${appliedCount > 1 ? 's' : ''}`);
         }
 
         if (alreadyHadCount > 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§e${alreadyHadCount} tag${alreadyHadCount > 1 ? "s" : ""} already existed`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§e${alreadyHadCount} tag${alreadyHadCount > 1 ? 's' : ''} already existed`);
         }
 
         // Show applied tags
         if (appliedCount > 0) {
             const appliedTags = tagsToApply.filter((tag) => !targetEntity.hasTag(tag) || appliedCount > 0);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Tags: ${tagsToApply.join(", ")}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Tags: ${tagsToApply.join(', ')}`);
         }
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to apply tags: ${e}`);
-        console.log("Failed to handle throw tag tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to apply tags: ${e}`);
+        console.log('Failed to handle throw tag tool: ' + e);
     }
 }
 
@@ -8761,14 +9022,14 @@ function handleRemoveTagTool(player, removeTool) {
         });
 
         if (!entitiesFromView || entitiesFromView.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo entity found in view direction within 30 blocks!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo entity found in view direction within 30 blocks!');
             return;
         }
 
         const targetEntity = entitiesFromView[0].entity;
 
         if (!targetEntity || targetEntity === player) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cInvalid target entity!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cInvalid target entity!');
             return;
         }
 
@@ -8776,7 +9037,7 @@ function handleRemoveTagTool(player, removeTool) {
         const entityTags = targetEntity.getTags();
 
         if (entityTags.length === 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§eTarget entity has no tags to remove.");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§eTarget entity has no tags to remove.');
             return;
         }
 
@@ -8793,17 +9054,17 @@ function handleRemoveTagTool(player, removeTool) {
 
         // Show results
         const distance = Math.floor(entitiesFromView[0].distance);
-        const entityType = targetEntity.typeId.replace("minecraft:", "");
+        const entityType = targetEntity.typeId.replace('minecraft:', '');
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aTarget: §f${entityType} §7(${distance} blocks)`);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cRemoved ${removedCount} tag${removedCount > 1 ? "s" : ""}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aTarget: §f${entityType} §7(${distance} blocks)`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cRemoved ${removedCount} tag${removedCount > 1 ? 's' : ''}`);
 
         if (removedCount > 0) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Removed: ${entityTags.slice(0, 5).join(", ")}${entityTags.length > 5 ? "..." : ""}`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Removed: ${entityTags.slice(0, 5).join(', ')}${entityTags.length > 5 ? '...' : ''}`);
         }
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to remove tags: ${e}`);
-        console.log("Failed to handle remove tag tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to remove tags: ${e}`);
+        console.log('Failed to handle remove tag tool: ' + e);
     }
 }
 
@@ -8811,8 +9072,8 @@ function handleRemoveTagTool(player, removeTool) {
 const COPY_PASTE_STATES = new Map(); // playerId -> { pos1, pos2, copiedStructureId }
 // Generate random 7-character code for structures
 function generateStructureCode(length = 7) {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "mystructure:";
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = 'mystructure:';
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -8824,16 +9085,16 @@ function copyPasteToolFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") {
-                console.log("Copy paste tool requires a player");
+            if (!player || player.typeId !== 'minecraft:player') {
+                console.log('Copy paste tool requires a player');
                 return;
             }
 
             createCopyPasteTool(player);
         } catch (e) {
-            console.log("Failed to create copy paste tool: " + e);
+            console.log('Failed to create copy paste tool: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to create copy paste tool: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to create copy paste tool: ${e.message || e}`);
             }
         }
     });
@@ -8844,11 +9105,11 @@ function copyPasteToolFunction(origin) {
 // Create copy paste tool
 function createCopyPasteTool(player) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
 
         // Create copy paste tool (blaze rod with special lore)
-        const copyTool = new ItemStack("minecraft:blaze_rod", 1);
-        copyTool.nameTag = "§6Copy Paste Tool";
+        const copyTool = new ItemStack('minecraft:blaze_rod', 1);
+        copyTool.nameTag = '§6Copy Paste Tool';
 
         // Initialize player state
         COPY_PASTE_STATES.set(player.id, {
@@ -8859,38 +9120,38 @@ function createCopyPasteTool(player) {
 
         // Create initial lore
         const loreLines = [
-            "§7Left-click: Set position 1",
-            "§7Right-click: Paste at location",
-            "§7Shift+Right-click: Set position 2",
-            "§8§l--- POSITIONS ---",
-            "§7Position 1: §cNot set",
-            "§7Position 2: §cNot set",
-            "§8§l--- CLIPBOARD ---",
-            "§7No structure copied",
+            '§7Left-click: Set position 1',
+            '§7Right-click: Paste at location',
+            '§7Shift+Right-click: Set position 2',
+            '§8§l--- POSITIONS ---',
+            '§7Position 1: §cNot set',
+            '§7Position 2: §cNot set',
+            '§8§l--- CLIPBOARD ---',
+            '§7No structure copied',
         ];
 
         copyTool.setLore(loreLines);
 
         equippable.setEquipment(EquipmentSlot.Mainhand, copyTool);
 
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aCopy Paste Tool created!");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Left-click blocks to set positions");
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Right-click to paste, Shift+Right-click to set pos2");
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aCopy Paste Tool created!');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Left-click blocks to set positions');
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Right-click to paste, Shift+Right-click to set pos2');
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cFailed to create copy paste tool: ${e}`);
-        console.log("Failed to create copy paste tool: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cFailed to create copy paste tool: ${e}`);
+        console.log('Failed to create copy paste tool: ' + e);
     }
 }
 
 // Update tool lore with current state
 function updateToolLoreCopyTool(player, tool, toolState) {
-    const loreLines = ["§7Left-click: Set position 1", "§7Right-click: Paste at location", "§7Shift+Right-click: Set position 2", "§8§l--- POSITIONS ---"];
+    const loreLines = ['§7Left-click: Set position 1', '§7Right-click: Paste at location', '§7Shift+Right-click: Set position 2', '§8§l--- POSITIONS ---'];
 
     // Add position information
     if (toolState.pos1) {
         loreLines.push(`§7Position 1: §a${toolState.pos1.x}, ${toolState.pos1.y}, ${toolState.pos1.z}`);
     } else {
-        loreLines.push("§7Position 1: §cNot set");
+        loreLines.push('§7Position 1: §cNot set');
     }
 
     if (toolState.pos2) {
@@ -8906,18 +9167,18 @@ function updateToolLoreCopyTool(player, tool, toolState) {
             loreLines.push(`§7Area: §f${dx}×${dy}×${dz} §7(${volume.toLocaleString()} blocks)`);
         }
     } else {
-        loreLines.push("§7Position 2: §cNot set");
+        loreLines.push('§7Position 2: §cNot set');
     }
 
-    loreLines.push("§8§l--- CLIPBOARD ---");
+    loreLines.push('§8§l--- CLIPBOARD ---');
 
     // Add clipboard information
     if (toolState.copiedStructureId) {
         loreLines.push(`§7Structure: §f${toolState.copiedStructureId}`);
-        loreLines.push("§7Ready to paste");
+        loreLines.push('§7Ready to paste');
     } else {
-        loreLines.push("§7No structure copied");
-        loreLines.push("§7Use /copy to copy selection");
+        loreLines.push('§7No structure copied');
+        loreLines.push('§7Use /copy to copy selection');
     }
 
     return loreLines;
@@ -8928,7 +9189,7 @@ function setposFunction(origin, location1 = null, location2 = null, posNumber = 
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             let toolState = COPY_PASTE_STATES.get(player.id);
             if (!toolState) {
@@ -8950,10 +9211,10 @@ function setposFunction(origin, location1 = null, location2 = null, posNumber = 
                 };
 
                 toolState.pos1 = pos1;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aPosition 1 set to: §f${pos1.x}, ${pos1.y}, ${pos1.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aPosition 1 set to: §f${pos1.x}, ${pos1.y}, ${pos1.z}`);
 
                 toolState.pos2 = pos2;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aPosition 2 set to: §f${pos2.x}, ${pos2.y}, ${pos2.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aPosition 2 set to: §f${pos2.x}, ${pos2.y}, ${pos2.z}`);
             } else if (posNumber == 1) {
                 const pos1 = {
                     x: Math.floor(location1.x),
@@ -8961,7 +9222,7 @@ function setposFunction(origin, location1 = null, location2 = null, posNumber = 
                     z: Math.floor(location1.z),
                 };
                 toolState.pos1 = pos1;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aPosition 1 set to: §f${pos1.x}, ${pos1.y}, ${pos1.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aPosition 1 set to: §f${pos1.x}, ${pos1.y}, ${pos1.z}`);
             } else if (posNumber == 2) {
                 const pos2 = {
                     x: Math.floor(location2.x),
@@ -8969,13 +9230,13 @@ function setposFunction(origin, location1 = null, location2 = null, posNumber = 
                     z: Math.floor(location2.z),
                 };
                 toolState.pos2 = pos2;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aPosition 2 set to: §f${pos2.x}, ${pos2.y}, ${pos2.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aPosition 2 set to: §f${pos2.x}, ${pos2.y}, ${pos2.z}`);
             }
 
             // Update tool if player has it
             updatePlayerTool(player, toolState);
         } catch (e) {
-            console.log("Failed to set position: " + e);
+            console.log('Failed to set position: ' + e);
         }
     });
 
@@ -8987,12 +9248,12 @@ function pos1Function(origin, location = null) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const pos = location || player.location;
             setposFunction(origin, pos, null, 1);
         } catch (e) {
-            console.log("Failed to set pos1: " + e);
+            console.log('Failed to set pos1: ' + e);
         }
     });
 
@@ -9004,12 +9265,12 @@ function pos2Function(origin, location = null) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const pos = location || player.location;
             setposFunction(origin, null, pos, 2);
         } catch (e) {
-            console.log("Failed to set pos2: " + e);
+            console.log('Failed to set pos2: ' + e);
         }
     });
 
@@ -9021,23 +9282,23 @@ function clearposFunction(origin) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             let toolState = COPY_PASTE_STATES.get(player.id);
             if (!toolState) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7No positions to clear.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7No positions to clear.');
                 return;
             }
 
             toolState.pos1 = null;
             toolState.pos2 = null;
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aPositions cleared!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aPositions cleared!');
 
             // Update tool if player has it
             updatePlayerTool(player, toolState);
         } catch (e) {
-            console.log("Failed to clear positions: " + e);
+            console.log('Failed to clear positions: ' + e);
         }
     });
 
@@ -9049,43 +9310,43 @@ function copyFunction(origin, includeEntities = false) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const toolState = COPY_PASTE_STATES.get(player.id);
             if (!toolState || !toolState.pos1 || !toolState.pos2) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cBoth positions must be set! Use /pos1 and /pos2 or the copy paste tool.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cBoth positions must be set! Use /pos1 and /pos2 or the copy paste tool.');
                 return;
             }
 
             // Calculate area
             const volume = calculateVolume(toolState.pos1, toolState.pos2);
             if (volume > 1000000) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cArea too large! ${volume.toLocaleString()} blocks. Maximum is 1000,000.`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cArea too large! ${volume.toLocaleString()} blocks. Maximum is 1000,000.`);
                 return;
             }
 
             // Generate structure ID
             const structureId = generateStructureCode();
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Copying structure...");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Copying structure...');
 
             // Copy structure
             const success = copyStructure(player, toolState.pos1, toolState.pos2, structureId, includeEntities);
 
             if (success) {
                 toolState.copiedStructureId = structureId;
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStructure copied! ID: §f${structureId}`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Size: ${volume.toLocaleString()} blocks${includeEntities ? " (with entities)" : ""}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStructure copied! ID: §f${structureId}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Size: ${volume.toLocaleString()} blocks${includeEntities ? ' (with entities)' : ''}`);
 
                 // Update tool
                 updatePlayerTool(player, toolState);
             } else {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to copy structure!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to copy structure!');
             }
         } catch (e) {
-            console.log("Failed to copy: " + e);
+            console.log('Failed to copy: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to copy: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to copy: ${e.message || e}`);
             }
         }
     });
@@ -9098,11 +9359,11 @@ function pasteFunction(origin, location = null) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const toolState = COPY_PASTE_STATES.get(player.id);
             if (!toolState || !toolState.copiedStructureId) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cNo structure in clipboard! Use /copy first.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cNo structure in clipboard! Use /copy first.');
                 return;
             }
 
@@ -9112,20 +9373,20 @@ function pasteFunction(origin, location = null) {
                 z: Math.floor(player.location.z),
             };
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Pasting structure...");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Pasting structure...');
 
             // Paste structure
             const success = pasteStructure(player, toolState.copiedStructureId, pasteLocation);
 
             if (success) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStructure pasted at: §f${pasteLocation.x}, ${pasteLocation.y}, ${pasteLocation.z}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStructure pasted at: §f${pasteLocation.x}, ${pasteLocation.y}, ${pasteLocation.z}`);
             } else {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to paste structure!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to paste structure!');
             }
         } catch (e) {
-            console.log("Failed to paste: " + e);
+            console.log('Failed to paste: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to paste: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to paste: ${e.message || e}`);
             }
         }
     });
@@ -9138,11 +9399,11 @@ function cutFunction(origin, includeEntities = false) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const toolState = COPY_PASTE_STATES.get(player.id);
             if (!toolState || !toolState.pos1 || !toolState.pos2) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cBoth positions must be set! Use /pos1 and /pos2 or the copy paste tool.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cBoth positions must be set! Use /pos1 and /pos2 or the copy paste tool.');
                 return;
             }
 
@@ -9150,14 +9411,14 @@ function cutFunction(origin, includeEntities = false) {
             copyFunction(origin, includeEntities);
 
             // Then clear the original area
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Clearing original area...");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Clearing original area...');
             system.runTimeout(() => clearArea(player, toolState.pos1, toolState.pos2, includeEntities), 20);
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aStructure cut (copied and cleared original area)!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aStructure cut (copied and cleared original area)!');
         } catch (e) {
-            console.log("Failed to cut: " + e);
+            console.log('Failed to cut: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to cut: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to cut: ${e.message || e}`);
             }
         }
     });
@@ -9170,17 +9431,17 @@ function moveFunction(origin, newLocation, includeEntities = false) {
     system.run(() => {
         try {
             const player = origin.sourceEntity;
-            if (!player || player.typeId !== "minecraft:player") return;
+            if (!player || player.typeId !== 'minecraft:player') return;
 
             const toolState = COPY_PASTE_STATES.get(player.id);
             if (!toolState || !toolState.pos1 || !toolState.pos2) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cBoth positions must be set! Use /pos1 and /pos2 or the copy paste tool.");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cBoth positions must be set! Use /pos1 and /pos2 or the copy paste tool.');
                 return;
             }
 
             // Copy, paste, then clear original
             const volume = calculateVolume(toolState.pos1, toolState.pos2);
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Moving structure (${volume.toLocaleString()} blocks)...`);
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Moving structure (${volume.toLocaleString()} blocks)...`);
 
             // Generate structure ID for temporary storage
             const structureId = generateStructureCode();
@@ -9196,7 +9457,7 @@ function moveFunction(origin, newLocation, includeEntities = false) {
                     // Clear original area
                     clearArea(player, toolState.pos1, toolState.pos2, includeEntities);
 
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aStructure moved to: §f${newLocation.x}, ${newLocation.y}, ${newLocation.z}`);
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aStructure moved to: §f${newLocation.x}, ${newLocation.y}, ${newLocation.z}`);
 
                     // Update positions to new location
                     const offset = {
@@ -9214,7 +9475,7 @@ function moveFunction(origin, newLocation, includeEntities = false) {
 
                     updatePlayerTool(player, toolState);
                 } else {
-                    if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to paste structure at new location!");
+                    if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to paste structure at new location!');
                 }
 
                 // Clean up temporary structure
@@ -9224,12 +9485,12 @@ function moveFunction(origin, newLocation, includeEntities = false) {
                     console.log(`Failed to delete temporary structure: ${e}`);
                 }
             } else {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to copy structure for moving!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to copy structure for moving!');
             }
         } catch (e) {
-            console.log("Failed to move: " + e);
+            console.log('Failed to move: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to move: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to move: ${e.message || e}`);
             }
         }
     });
@@ -9240,10 +9501,10 @@ function moveFunction(origin, newLocation, includeEntities = false) {
 // Update player tool lore if they have the tool
 function updatePlayerTool(player, toolState) {
     try {
-        const equippable = player.getComponent("minecraft:equippable");
+        const equippable = player.getComponent('minecraft:equippable');
         const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
-        if (heldItem && heldItem.nameTag && heldItem.nameTag.includes("Copy Paste Tool")) {
+        if (heldItem && heldItem.nameTag && heldItem.nameTag.includes('Copy Paste Tool')) {
             const newTool = heldItem.clone();
             const updatedLore = updateToolLoreCopyTool(player, newTool, toolState);
             newTool.setLore(updatedLore);
@@ -9337,7 +9598,7 @@ function clearArea(player, pos1, pos2, includeEntities) {
 
             for (const entity of entities) {
                 if (
-                    entity.typeId !== "minecraft:player" &&
+                    entity.typeId !== 'minecraft:player' &&
                     entity.location.x >= from.x &&
                     entity.location.x <= to.x &&
                     entity.location.y >= from.y &&
@@ -9361,11 +9622,11 @@ function clearArea(player, pos1, pos2, includeEntities) {
 // Event handlers
 world.beforeEvents.playerBreakBlock.subscribe((ev) => {
     const player = ev.player;
-    const equippable = player.getComponent("minecraft:equippable");
+    const equippable = player.getComponent('minecraft:equippable');
     const heldItem = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
     // Check if holding copy paste tool
-    if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes("Copy Paste Tool")) return;
+    if (!heldItem || !heldItem.nameTag || !heldItem.nameTag.includes('Copy Paste Tool')) return;
 
     // Cancel the break event
     ev.cancel = true;
@@ -9376,13 +9637,13 @@ world.beforeEvents.playerBreakBlock.subscribe((ev) => {
 });
 
 world.afterEvents.itemUse.subscribe((ev) => {
-    if (ev.source.typeId !== "minecraft:player" || !ev.itemStack) return;
+    if (ev.source.typeId !== 'minecraft:player' || !ev.itemStack) return;
 
     const player = ev.source;
     const itemStack = ev.itemStack;
 
     // Check if it's the copy paste tool
-    if (!itemStack.nameTag || !itemStack.nameTag.includes("Copy Paste Tool")) return;
+    if (!itemStack.nameTag || !itemStack.nameTag.includes('Copy Paste Tool')) return;
 
     try {
         // Check if player is sneaking (shift+right-click)
@@ -9408,8 +9669,8 @@ world.afterEvents.itemUse.subscribe((ev) => {
             }
         }
     } catch (e) {
-        console.log("Error using copy paste tool: " + e);
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cFailed to use copy paste tool!");
+        console.log('Error using copy paste tool: ' + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cFailed to use copy paste tool!');
     }
 });
 
@@ -9419,24 +9680,24 @@ function mathFunction(origin, expression) {
         try {
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Math command requires a player source");
+                console.log('Math command requires a player source');
                 return;
             }
 
             // Check if player is in creative mode (additional safety)
             try {
-                const gamemode = player.runCommand("testfor @s[m=c]");
+                const gamemode = player.runCommand('testfor @s[m=c]');
                 // If this doesn't throw an error, player is in creative mode
             } catch (e) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cMath command requires creative mode!");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cMath command requires creative mode!');
                 return;
             }
 
             evaluateMathExpression(player, expression, false);
         } catch (e) {
-            console.log("Failed to execute math command: " + e);
+            console.log('Failed to execute math command: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to evaluate expression: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to evaluate expression: ${e.message || e}`);
             }
         }
     });
@@ -9450,15 +9711,15 @@ function mathSafeFunction(origin, expression) {
         try {
             const player = origin.sourceEntity;
             if (!player) {
-                console.log("Math safe command requires a player source");
+                console.log('Math safe command requires a player source');
                 return;
             }
 
             evaluateMathExpression(player, expression, true);
         } catch (e) {
-            console.log("Failed to execute math safe command: " + e);
+            console.log('Failed to execute math safe command: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to evaluate expression: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to evaluate expression: ${e.message || e}`);
             }
         }
     });
@@ -9473,12 +9734,12 @@ function evaluateMathExpression(player, expression, safeMode) {
         const cleanExpression = expression.trim();
 
         if (!cleanExpression) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cEmpty expression provided!");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cEmpty expression provided!');
             return;
         }
 
         // Show what we're evaluating
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Evaluating${safeMode ? " (safe mode)" : ""}: §f${cleanExpression}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Evaluating${safeMode ? ' (safe mode)' : ''}: §f${cleanExpression}`);
 
         let result;
 
@@ -9491,10 +9752,10 @@ function evaluateMathExpression(player, expression, safeMode) {
         // Format and display result
         displayMathResult(player, cleanExpression, result, safeMode);
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§cError evaluating expression: ${e.message || e}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§cError evaluating expression: ${e.message || e}`);
 
         if (safeMode) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Safe mode allows: +, -, *, /, ^, sqrt(), sin(), cos(), tan(), log(), abs(), ceil(), floor(), round()");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Safe mode allows: +, -, *, /, ^, sqrt(), sin(), cos(), tan(), log(), abs(), ceil(), floor(), round()');
         }
     }
 }
@@ -9503,36 +9764,36 @@ function evaluateMathExpression(player, expression, safeMode) {
 function evaluateSafeExpression(expression) {
     // Whitelist of allowed characters and functions for safe mode
     const allowedPattern = /^[0-9+\-*/.()^, \s]*$/;
-    const allowedFunctions = ["sqrt", "sin", "cos", "tan", "log", "abs", "ceil", "floor", "round", "max", "min", "pi", "e"];
+    const allowedFunctions = ['sqrt', 'sin', 'cos', 'tan', 'log', 'abs', 'ceil', 'floor', 'round', 'max', 'min', 'pi', 'e'];
 
     // Check for basic safety
-    if (!allowedPattern.test(expression.replace(/sqrt|sin|cos|tan|log|abs|ceil|floor|round|max|min|pi|e/g, ""))) {
-        throw new Error("Expression contains unsafe characters");
+    if (!allowedPattern.test(expression.replace(/sqrt|sin|cos|tan|log|abs|ceil|floor|round|max|min|pi|e/g, ''))) {
+        throw new Error('Expression contains unsafe characters');
     }
 
     // Replace some common mathematical constants and functions for JavaScript
     let jsExpression = expression
-        .replace(/\^/g, "**") // Power operator
-        .replace(/pi/g, "Math.PI")
-        .replace(/e/g, "Math.E")
-        .replace(/sqrt/g, "Math.sqrt")
-        .replace(/sin/g, "Math.sin")
-        .replace(/cos/g, "Math.cos")
-        .replace(/tan/g, "Math.tan")
-        .replace(/log/g, "Math.log")
-        .replace(/abs/g, "Math.abs")
-        .replace(/ceil/g, "Math.ceil")
-        .replace(/floor/g, "Math.floor")
-        .replace(/round/g, "Math.round")
-        .replace(/max/g, "Math.max")
-        .replace(/min/g, "Math.min");
+        .replace(/\^/g, '**') // Power operator
+        .replace(/pi/g, 'Math.PI')
+        .replace(/e/g, 'Math.E')
+        .replace(/sqrt/g, 'Math.sqrt')
+        .replace(/sin/g, 'Math.sin')
+        .replace(/cos/g, 'Math.cos')
+        .replace(/tan/g, 'Math.tan')
+        .replace(/log/g, 'Math.log')
+        .replace(/abs/g, 'Math.abs')
+        .replace(/ceil/g, 'Math.ceil')
+        .replace(/floor/g, 'Math.floor')
+        .replace(/round/g, 'Math.round')
+        .replace(/max/g, 'Math.max')
+        .replace(/min/g, 'Math.min');
 
     // Evaluate using Function constructor (safer than eval)
     try {
-        const result = new Function("Math", `"use strict"; return (${jsExpression})`)(Math);
+        const result = new Function('Math', `"use strict"; return (${jsExpression})`)(Math);
 
-        if (typeof result !== "number" || !isFinite(result)) {
-            throw new Error("Result is not a valid number");
+        if (typeof result !== 'number' || !isFinite(result)) {
+            throw new Error('Result is not a valid number');
         }
 
         return result;
@@ -9546,33 +9807,33 @@ function evaluateUnrestrictedExpression(expression) {
     try {
         // More advanced mathematical operations allowed in creative mode
         let jsExpression = expression
-            .replace(/\^/g, "**") // Power operator
-            .replace(/pi/g, "Math.PI")
-            .replace(/e/g, "Math.E")
-            .replace(/sqrt/g, "Math.sqrt")
-            .replace(/sin/g, "Math.sin")
-            .replace(/cos/g, "Math.cos")
-            .replace(/tan/g, "Math.tan")
-            .replace(/asin/g, "Math.asin")
-            .replace(/acos/g, "Math.acos")
-            .replace(/atan/g, "Math.atan")
-            .replace(/log/g, "Math.log")
-            .replace(/log10/g, "Math.log10")
-            .replace(/log2/g, "Math.log2")
-            .replace(/abs/g, "Math.abs")
-            .replace(/ceil/g, "Math.ceil")
-            .replace(/floor/g, "Math.floor")
-            .replace(/round/g, "Math.round")
-            .replace(/max/g, "Math.max")
-            .replace(/min/g, "Math.min")
-            .replace(/random/g, "Math.random")
-            .replace(/pow/g, "Math.pow");
+            .replace(/\^/g, '**') // Power operator
+            .replace(/pi/g, 'Math.PI')
+            .replace(/e/g, 'Math.E')
+            .replace(/sqrt/g, 'Math.sqrt')
+            .replace(/sin/g, 'Math.sin')
+            .replace(/cos/g, 'Math.cos')
+            .replace(/tan/g, 'Math.tan')
+            .replace(/asin/g, 'Math.asin')
+            .replace(/acos/g, 'Math.acos')
+            .replace(/atan/g, 'Math.atan')
+            .replace(/log/g, 'Math.log')
+            .replace(/log10/g, 'Math.log10')
+            .replace(/log2/g, 'Math.log2')
+            .replace(/abs/g, 'Math.abs')
+            .replace(/ceil/g, 'Math.ceil')
+            .replace(/floor/g, 'Math.floor')
+            .replace(/round/g, 'Math.round')
+            .replace(/max/g, 'Math.max')
+            .replace(/min/g, 'Math.min')
+            .replace(/random/g, 'Math.random')
+            .replace(/pow/g, 'Math.pow');
 
         // Still use Function constructor for safety
-        const result = new Function("Math", `"use strict"; return (${jsExpression})`)(Math);
+        const result = new Function('Math', `"use strict"; return (${jsExpression})`)(Math);
 
-        if (typeof result !== "number") {
-            throw new Error("Result is not a number");
+        if (typeof result !== 'number') {
+            throw new Error('Result is not a number');
         }
 
         return result;
@@ -9602,35 +9863,35 @@ function displayMathResult(player, expression, result, safeMode) {
         }
 
         // Main result
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§a= §f${formattedResult}`);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§a= §f${formattedResult}`);
 
         // Additional information for certain results
         if (result === Math.PI) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7(π - Pi)");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7(π - Pi)');
         } else if (result === Math.E) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7(e - Euler's number)");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage("§7(e - Euler's number)");
         } else if (Math.abs(result - Math.PI) < 0.0001) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7(≈ π)");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7(≈ π)');
         } else if (Math.abs(result - Math.E) < 0.0001) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7(≈ e)");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7(≈ e)');
         }
 
         // Show binary/hex for integers in unrestricted mode
         if (!safeMode && result % 1 === 0 && Math.abs(result) < 2147483648) {
             const intResult = Math.floor(result);
             if (intResult !== 0) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Binary: ${intResult.toString(2)}`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Hex: 0x${intResult.toString(16).toUpperCase()}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Binary: ${intResult.toString(2)}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Hex: 0x${intResult.toString(16).toUpperCase()}`);
             }
         }
 
         // Show calculation time for complex expressions
-        if (expression.length > 20 || expression.includes("sin") || expression.includes("cos") || expression.includes("log")) {
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Calculation completed");
+        if (expression.length > 20 || expression.includes('sin') || expression.includes('cos') || expression.includes('log')) {
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Calculation completed');
         }
     } catch (e) {
-        if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§aResult: ${result}`);
-        console.log("Failed to format math result: " + e);
+        if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§aResult: ${result}`);
+        console.log('Failed to format math result: ' + e);
     }
 }
 
@@ -9640,29 +9901,29 @@ function mathHelpFunction(origin) {
             const player = origin.sourceEntity;
             if (!player) return;
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§a--- Mathematical Functions ---");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Available in /mathsafe:");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Basic: §7+, -, *, /, ^ (power)");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Functions: §7sqrt(), sin(), cos(), tan()");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Logarithms: §7log() (natural log)");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Rounding: §7abs(), ceil(), floor(), round()");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Comparison: §7max(), min()");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Constants: §7pi, e");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§a--- Mathematical Functions ---');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Available in /mathsafe:');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Basic: §7+, -, *, /, ^ (power)');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Functions: §7sqrt(), sin(), cos(), tan()');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Logarithms: §7log() (natural log)');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Rounding: §7abs(), ceil(), floor(), round()');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Comparison: §7max(), min()');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Constants: §7pi, e');
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Additional in /math (creative only):");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Inverse trig: §7asin(), acos(), atan()");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• More logs: §7log10(), log2()");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Advanced: §7pow(), random()");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f• Number formats: §7binary, hex display");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Additional in /math (creative only):');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Inverse trig: §7asin(), acos(), atan()');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• More logs: §7log10(), log2()');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Advanced: §7pow(), random()');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f• Number formats: §7binary, hex display');
 
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Examples:");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f/mathsafe 2^3 + sqrt(16)");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f/mathsafe sin(pi/4) * cos(pi/4)");
-            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§f/math log10(1000) + random()");
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Examples:');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f/mathsafe 2^3 + sqrt(16)');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f/mathsafe sin(pi/4) * cos(pi/4)');
+            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§f/math log10(1000) + random()');
         } catch (e) {
-            console.log("Failed to show math help: " + e);
+            console.log('Failed to show math help: ' + e);
         }
     });
 
@@ -9678,16 +9939,16 @@ function convertFunction(origin, value, fromUnit, toUnit) {
             const result = performUnitConversion(value, fromUnit.toLowerCase(), toUnit.toLowerCase());
 
             if (result !== null) {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§7Converting: §f${value} ${fromUnit}`);
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§a= §f${result} ${toUnit}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§7Converting: §f${value} ${fromUnit}`);
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§a= §f${result} ${toUnit}`);
             } else {
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§cUnsupported unit conversion!");
-                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§7Supported: meters/feet, celsius/fahrenheit, kg/lbs");
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§cUnsupported unit conversion!');
+                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§7Supported: meters/feet, celsius/fahrenheit, kg/lbs');
             }
         } catch (e) {
-            console.log("Failed to convert units: " + e);
+            console.log('Failed to convert units: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cConversion failed: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cConversion failed: ${e.message || e}`);
             }
         }
     });
@@ -9731,11 +9992,11 @@ function performUnitConversion(value, fromUnit, toUnit) {
 system.runTimeout(() => {
     try {
         // Create scoreboard for freeze tracking
-        world.scoreboard.addObjective("vertxfreezejail", "Freeze Jail Timer");
-        console.log("Freeze jail scoreboard initialized");
+        world.scoreboard.addObjective('vertxfreezejail', 'Freeze Jail Timer');
+        console.log('Freeze jail scoreboard initialized');
     } catch (e) {
         // Scoreboard might already exist
-        console.log("Freeze jail scoreboard already exists or failed to create: " + e);
+        console.log('Freeze jail scoreboard already exists or failed to create: ' + e);
     }
 
     // Start freeze timer system
@@ -9743,16 +10004,16 @@ system.runTimeout(() => {
 }, 20); // Wait 1 second after startup
 
 // Main freeze function
-function freezeFunction(origin, targets, showMessage = true, customMessage = "", freezeTime = 60) {
+function freezeFunction(origin, targets, showMessage = true, customMessage = '', freezeTime = 60) {
     system.run(() => {
         try {
             const executor = origin.sourceEntity;
             let frozenCount = 0;
 
             for (const target of targets) {
-                if (!target || target.typeId !== "minecraft:player") {
+                if (!target || target.typeId !== 'minecraft:player') {
                     if (executor) {
-                        if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§cTarget must be a player! Skipped ${target?.typeId || "invalid target"}`);
+                        if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§cTarget must be a player! Skipped ${target?.typeId || 'invalid target'}`);
                     }
                     continue;
                 }
@@ -9766,25 +10027,25 @@ function freezeFunction(origin, targets, showMessage = true, customMessage = "",
                     // Send message to frozen player
                     if (showMessage) {
                         const message = customMessage || getDefaultFreezeMessage(freezeTime);
-                        if (!target.hasTag("dontshowcommandlogs")) target.sendMessage(message);
+                        if (!target.hasTag('dontshowcommandlogs')) target.sendMessage(message);
                     }
 
                     // Log action
-                    const executorName = executor?.name || "Console";
-                    const timeText = freezeTime === -1 ? "indefinitely" : `for ${freezeTime} seconds`;
+                    const executorName = executor?.name || 'Console';
+                    const timeText = freezeTime === -1 ? 'indefinitely' : `for ${freezeTime} seconds`;
                     console.log(`Player ${target.name} frozen by ${executorName} ${timeText}`);
                 }
             }
 
             // Confirmation message to executor
             if (executor && frozenCount > 0) {
-                const timeText = freezeTime === -1 ? "indefinitely" : `for ${freezeTime} seconds`;
-                if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§aFroze ${frozenCount} player(s) ${timeText}`);
+                const timeText = freezeTime === -1 ? 'indefinitely' : `for ${freezeTime} seconds`;
+                if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§aFroze ${frozenCount} player(s) ${timeText}`);
             }
         } catch (e) {
-            console.log("Failed to freeze players: " + e);
+            console.log('Failed to freeze players: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to freeze: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to freeze: ${e.message || e}`);
             }
         }
     });
@@ -9793,16 +10054,16 @@ function freezeFunction(origin, targets, showMessage = true, customMessage = "",
 }
 
 // Main unfreeze function
-function unfreezeFunction(origin, targets, showMessage = true, customMessage = "") {
+function unfreezeFunction(origin, targets, showMessage = true, customMessage = '') {
     system.run(() => {
         try {
             const executor = origin.sourceEntity;
             let unFrozenCount = 0;
 
             for (const target of targets) {
-                if (!target || target.typeId !== "minecraft:player") {
+                if (!target || target.typeId !== 'minecraft:player') {
                     if (executor) {
-                        if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§cTarget must be a player! Skipped ${target?.typeId || "invalid target"}`);
+                        if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§cTarget must be a player! Skipped ${target?.typeId || 'invalid target'}`);
                     }
                     continue;
                 }
@@ -9810,7 +10071,7 @@ function unfreezeFunction(origin, targets, showMessage = true, customMessage = "
                 // Check if player is frozen
                 if (!isPlayerFrozen(target)) {
                     if (executor) {
-                        if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§e${target.name} is not frozen`);
+                        if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§e${target.name} is not frozen`);
                     }
                     continue;
                 }
@@ -9823,24 +10084,24 @@ function unfreezeFunction(origin, targets, showMessage = true, customMessage = "
 
                     // Send message to unfrozen player
                     if (showMessage) {
-                        const message = customMessage || "§aYou have been unfrozen! You can now move and use commands.";
-                        if (!target.hasTag("dontshowcommandlogs")) target.sendMessage(message);
+                        const message = customMessage || '§aYou have been unfrozen! You can now move and use commands.';
+                        if (!target.hasTag('dontshowcommandlogs')) target.sendMessage(message);
                     }
 
                     // Log action
-                    const executorName = executor?.name || "Console";
+                    const executorName = executor?.name || 'Console';
                     console.log(`Player ${target.name} unfrozen by ${executorName}`);
                 }
             }
 
             // Confirmation message to executor
             if (executor && unFrozenCount > 0) {
-                if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§aUnfroze ${unFrozenCount} player(s)`);
+                if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§aUnfroze ${unFrozenCount} player(s)`);
             }
         } catch (e) {
-            console.log("Failed to unfreeze players: " + e);
+            console.log('Failed to unfreeze players: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to unfreeze: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to unfreeze: ${e.message || e}`);
             }
         }
     });
@@ -9854,9 +10115,9 @@ function applyFreeze(player, freezeTime, executor) {
         // Store freeze time in scoreboard (-10 for infinite, positive for timed)
         const scoreboardTime = freezeTime === -1 ? -10 : freezeTime;
 
-        const objective = world.scoreboard.getObjective("vertxfreezejail");
+        const objective = world.scoreboard.getObjective('vertxfreezejail');
         if (!objective) {
-            console.log("Freeze jail scoreboard not found!");
+            console.log('Freeze jail scoreboard not found!');
             return false;
         }
 
@@ -9864,11 +10125,11 @@ function applyFreeze(player, freezeTime, executor) {
         objective.setScore(player, scoreboardTime);
 
         // Disable player permissions
-        player.runCommand("inputpermission set @s movement disabled");
-        player.runCommand("inputpermission set @s camera disabled");
+        player.runCommand('inputpermission set @s movement disabled');
+        player.runCommand('inputpermission set @s camera disabled');
 
         // Add freeze tag for easy identification
-        player.addTag("vertx_frozen");
+        player.addTag('vertx_frozen');
 
         return true;
     } catch (e) {
@@ -9880,9 +10141,9 @@ function applyFreeze(player, freezeTime, executor) {
 // Remove freeze from a player
 function removeFreeze(player, executor) {
     try {
-        const objective = world.scoreboard.getObjective("vertxfreezejail");
+        const objective = world.scoreboard.getObjective('vertxfreezejail');
         if (!objective) {
-            console.log("Freeze jail scoreboard not found!");
+            console.log('Freeze jail scoreboard not found!');
             return false;
         }
 
@@ -9890,16 +10151,16 @@ function removeFreeze(player, executor) {
         objective.setScore(player, 0);
 
         // Restore player permissions
-        player.runCommand("inputpermission set @s movement enabled");
-        player.runCommand("inputpermission set @s camera enabled");
+        player.runCommand('inputpermission set @s movement enabled');
+        player.runCommand('inputpermission set @s camera enabled');
 
         // Remove effects
-        player.removeEffect("slowness");
-        player.removeEffect("mining_fatigue");
-        player.removeEffect("weakness");
+        player.removeEffect('slowness');
+        player.removeEffect('mining_fatigue');
+        player.removeEffect('weakness');
 
         // Remove freeze tag
-        player.removeTag("vertx_frozen");
+        player.removeTag('vertx_frozen');
 
         return true;
     } catch (e) {
@@ -9911,7 +10172,7 @@ function removeFreeze(player, executor) {
 // Check if player is frozen
 function isPlayerFrozen(player) {
     try {
-        const objective = world.scoreboard.getObjective("vertxfreezejail");
+        const objective = world.scoreboard.getObjective('vertxfreezejail');
         if (!objective) return false;
 
         const score = objective.getScore(player);
@@ -9924,7 +10185,7 @@ function isPlayerFrozen(player) {
 // Get default freeze message
 function getDefaultFreezeMessage(freezeTime) {
     if (freezeTime === -1) {
-        return "§c§lYou have been FROZEN indefinitely!\n§7You cannot move or use commands until unfrozen by staff.";
+        return '§c§lYou have been FROZEN indefinitely!\n§7You cannot move or use commands until unfrozen by staff.';
     } else {
         const minutes = Math.floor(freezeTime / 60);
         const seconds = freezeTime % 60;
@@ -9937,7 +10198,7 @@ function getDefaultFreezeMessage(freezeTime) {
 function startFreezeTimerSystem() {
     system.runInterval(() => {
         try {
-            const objective = world.scoreboard.getObjective("vertxfreezejail");
+            const objective = world.scoreboard.getObjective('vertxfreezejail');
             if (!objective) return;
 
             // Get all players
@@ -9954,7 +10215,7 @@ function startFreezeTimerSystem() {
                         if (newScore <= 0) {
                             // Timer expired, unfreeze player
                             removeFreeze(player, null);
-                            if (!player.hasTag("dontshowcommandlogs")) player.sendMessage("§aYour freeze time has expired! You can now move freely.");
+                            if (!player.hasTag('dontshowcommandlogs')) player.sendMessage('§aYour freeze time has expired! You can now move freely.');
                             console.log(`Player ${player.name} automatically unfrozen (timer expired)`);
                         } else {
                             // Update timer
@@ -9966,7 +10227,7 @@ function startFreezeTimerSystem() {
                                 const minutes = Math.floor(newScore / 60);
                                 const seconds = newScore % 60;
                                 const timeText = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-                                if (!player.hasTag("dontshowcommandlogs")) player.sendMessage(`§e§lFreeze time remaining: ${timeText}`);
+                                if (!player.hasTag('dontshowcommandlogs')) player.sendMessage(`§e§lFreeze time remaining: ${timeText}`);
                             }
                         }
                     }
@@ -9975,7 +10236,7 @@ function startFreezeTimerSystem() {
                 }
             }
         } catch (e) {
-            console.log("Error in freeze timer system: " + e);
+            console.log('Error in freeze timer system: ' + e);
         }
     }, 20); // Run every second (20 ticks)
 }
@@ -9986,9 +10247,9 @@ function freezeStatusFunction(origin, targets = null) {
             const executor = origin.sourceEntity;
             if (!executor) return;
 
-            const objective = world.scoreboard.getObjective("vertxfreezejail");
+            const objective = world.scoreboard.getObjective('vertxfreezejail');
             if (!objective) {
-                if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage("§cFreeze system not initialized!");
+                if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage('§cFreeze system not initialized!');
                 return;
             }
 
@@ -10001,7 +10262,7 @@ function freezeStatusFunction(origin, targets = null) {
             const frozenPlayers = [];
 
             for (const player of playersToCheck) {
-                if (player.typeId !== "minecraft:player") continue;
+                if (player.typeId !== 'minecraft:player') continue;
 
                 try {
                     const score = objective.getScore(player);
@@ -10009,7 +10270,7 @@ function freezeStatusFunction(origin, targets = null) {
                     if (score !== undefined && score !== 0) {
                         let timeText;
                         if (score === -10) {
-                            timeText = "Infinite";
+                            timeText = 'Infinite';
                         } else {
                             const minutes = Math.floor(score / 60);
                             const seconds = score % 60;
@@ -10028,18 +10289,18 @@ function freezeStatusFunction(origin, targets = null) {
             }
 
             if (frozenPlayers.length === 0) {
-                if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage("§aNo players are currently frozen");
+                if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage('§aNo players are currently frozen');
             } else {
-                if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage("§c--- Frozen Players ---");
+                if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage('§c--- Frozen Players ---');
                 for (const frozen of frozenPlayers) {
-                    if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§7${frozen.name}: §f${frozen.timeRemaining}`);
+                    if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§7${frozen.name}: §f${frozen.timeRemaining}`);
                 }
-                if (!executor.hasTag("dontshowcommandlogs")) executor.sendMessage(`§7Total: ${frozenPlayers.length} frozen players`);
+                if (!executor.hasTag('dontshowcommandlogs')) executor.sendMessage(`§7Total: ${frozenPlayers.length} frozen players`);
             }
         } catch (e) {
-            console.log("Failed to check freeze status: " + e);
+            console.log('Failed to check freeze status: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to check freeze status: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to check freeze status: ${e.message || e}`);
             }
         }
     });
@@ -10054,18 +10315,18 @@ function replaceLoreLineFunction(origin, lineIndex, newLine, targets = [origin.s
             let modifiedCount = 0;
 
             for (const entity of targets) {
-                if (!entity || entity.typeId !== "minecraft:player") {
+                if (!entity || entity.typeId !== 'minecraft:player') {
                     if (origin.sourceEntity) {
-                        if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cTarget must be a player! Skipped ${entity?.typeId || "invalid target"}`);
+                        if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cTarget must be a player! Skipped ${entity?.typeId || 'invalid target'}`);
                     }
                     continue;
                 }
 
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
                 if (!item) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo item in mainhand!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo item in mainhand!');
                     continue;
                 }
 
@@ -10073,12 +10334,12 @@ function replaceLoreLineFunction(origin, lineIndex, newLine, targets = [origin.s
 
                 // Validate line index
                 if (lineIndex < 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cLine index cannot be negative!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cLine index cannot be negative!');
                     continue;
                 }
 
                 if (lineIndex >= currentLore.length) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§cLine index ${lineIndex} is out of range! Item has ${currentLore.length} lore lines (0-${currentLore.length - 1})`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§cLine index ${lineIndex} is out of range! Item has ${currentLore.length} lore lines (0-${currentLore.length - 1})`);
                     continue;
                 }
 
@@ -10093,20 +10354,20 @@ function replaceLoreLineFunction(origin, lineIndex, newLine, targets = [origin.s
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
 
                 // Success message
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§aReplaced lore line ${lineIndex}:`);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Old: ${oldLine}`);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7New: ${newLine}`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§aReplaced lore line ${lineIndex}:`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Old: ${oldLine}`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7New: ${newLine}`);
 
                 modifiedCount++;
             }
 
             if (origin.sourceEntity && modifiedCount > 0) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§aModified lore for ${modifiedCount} item(s)`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§aModified lore for ${modifiedCount} item(s)`);
             }
         } catch (e) {
-            console.log("Failed to replace lore line: " + e);
+            console.log('Failed to replace lore line: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to replace lore line: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to replace lore line: ${e.message || e}`);
             }
         }
     });
@@ -10121,25 +10382,25 @@ function replaceLoreLineFindFunction(origin, findText, newLine, targets = [origi
             let modifiedCount = 0;
 
             for (const entity of targets) {
-                if (!entity || entity.typeId !== "minecraft:player") {
+                if (!entity || entity.typeId !== 'minecraft:player') {
                     if (origin.sourceEntity) {
-                        if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cTarget must be a player! Skipped ${entity?.typeId || "invalid target"}`);
+                        if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cTarget must be a player! Skipped ${entity?.typeId || 'invalid target'}`);
                     }
                     continue;
                 }
 
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
                 if (!item) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo item in mainhand!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo item in mainhand!');
                     continue;
                 }
 
                 const currentLore = item.getLore();
 
                 if (currentLore.length === 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cItem has no lore to search!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cItem has no lore to search!');
                     continue;
                 }
 
@@ -10158,19 +10419,19 @@ function replaceLoreLineFindFunction(origin, findText, newLine, targets = [origi
                 }
 
                 if (matchingLines.length === 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§cNo lore lines found containing: "${findText}"`);
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§7Current lore:");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§cNo lore lines found containing: "${findText}"`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§7Current lore:');
                     currentLore.forEach((line, index) => {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7${index}: ${line}`);
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7${index}: ${line}`);
                     });
                     continue;
                 }
 
                 // If multiple matches, ask for clarification (replace first match)
                 if (matchingLines.length > 1) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§eFound ${matchingLines.length} matching lines. Replacing first match:`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§eFound ${matchingLines.length} matching lines. Replacing first match:`);
                     matchingLines.forEach((match) => {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7${match.index}: ${match.text}`);
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7${match.index}: ${match.text}`);
                     });
                 }
 
@@ -10185,24 +10446,24 @@ function replaceLoreLineFindFunction(origin, findText, newLine, targets = [origi
                 equippable.setEquipment(EquipmentSlot.Mainhand, newItem);
 
                 // Success message
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§aReplaced lore line ${targetMatch.index}:`);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Old: ${targetMatch.text}`);
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7New: ${newLine}`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§aReplaced lore line ${targetMatch.index}:`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Old: ${targetMatch.text}`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7New: ${newLine}`);
 
                 if (matchingLines.length > 1) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Note: ${matchingLines.length - 1} other matching lines were not changed`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Note: ${matchingLines.length - 1} other matching lines were not changed`);
                 }
 
                 modifiedCount++;
             }
 
             if (origin.sourceEntity && modifiedCount > 0) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§aModified lore for ${modifiedCount} item(s)`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§aModified lore for ${modifiedCount} item(s)`);
             }
         } catch (e) {
-            console.log("Failed to replace lore line by find: " + e);
+            console.log('Failed to replace lore line by find: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to replace lore line: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to replace lore line: ${e.message || e}`);
             }
         }
     });
@@ -10214,38 +10475,38 @@ function showLoreNumbersFunction(origin, targets = [origin.sourceEntity]) {
     system.run(() => {
         try {
             for (const entity of targets) {
-                if (!entity || entity.typeId !== "minecraft:player") {
+                if (!entity || entity.typeId !== 'minecraft:player') {
                     continue;
                 }
 
-                const equippable = entity.getComponent("minecraft:equippable");
+                const equippable = entity.getComponent('minecraft:equippable');
                 const item = equippable?.getEquipment(EquipmentSlot.Mainhand);
 
                 if (!item) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§cNo item in mainhand!");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§cNo item in mainhand!');
                     continue;
                 }
 
                 const loreArray = item.getLore();
                 const itemName = item.nameTag || item.typeId;
 
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§a--- Lore for ${itemName} ---`);
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§a--- Lore for ${itemName} ---`);
 
                 if (loreArray.length === 0) {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§7No lore found");
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§7No lore found');
                 } else {
-                    if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§7Total lines: ${loreArray.length}`);
+                    if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§7Total lines: ${loreArray.length}`);
                     loreArray.forEach((line, index) => {
-                        if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage(`§e${index}: §r${line}`);
+                        if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage(`§e${index}: §r${line}`);
                     });
                 }
 
-                if (!entity.hasTag("dontshowcommandlogs")) entity.sendMessage("§7Use line numbers with /replaceloreline");
+                if (!entity.hasTag('dontshowcommandlogs')) entity.sendMessage('§7Use line numbers with /replaceloreline');
             }
         } catch (e) {
-            console.log("Failed to show lore: " + e);
+            console.log('Failed to show lore: ' + e);
             if (origin.sourceEntity) {
-                if (!origin.sourceEntity.hasTag("dontshowcommandlogs")) origin.sourceEntity.sendMessage(`§cFailed to show lore: ${e.message || e}`);
+                if (!origin.sourceEntity.hasTag('dontshowcommandlogs')) origin.sourceEntity.sendMessage(`§cFailed to show lore: ${e.message || e}`);
             }
         }
     });

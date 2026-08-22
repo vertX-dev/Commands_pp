@@ -1,69 +1,45 @@
 {
-  "format_version": 2,
-  "metadata": {
-    "authors": [
-      "vertX"
+    "format_version": 2,
+    "metadata": {
+        "authors": ["vertX"],
+        "url": "",
+        "product_type": "addon"
+    },
+    "header": {
+        "name": "Commands++ v14.7 beta",
+        "description": "Add new powerful commands.",
+        "uuid": "58e1e9d2-ab03-43f7-96e0-fd77803ba775",
+        "version": [1, 0, 0],
+        "min_engine_version": [1, 21, 80]
+    },
+    "modules": [
+        {
+            "type": "data",
+            "uuid": "3f57059a-31ca-4ecb-bdd0-36d4ebc0acd7",
+            "version": [1, 0, 1]
+        },
+        {
+            "type": "script",
+            "language": "javascript",
+            "uuid": "3ed55c61-15f5-4bcf-954f-74d4d2bb9c99",
+            "version": [1, 0, 1],
+            "entry": "scripts/main.js",
+            "name": "Dev commands Script"
+        }
     ],
-    "url": "",
-    "product_type": "addon"
-  },
-  "header": {
-    "name": "Commands++ v13.8",
-    "description": "Add new powerful commands.",
-    "uuid": "58bf1e0b-b520-4549-928e-5295c5076b56",
-    "version": [
-      1,
-      0,
-      0
+    "dependencies": [
+        {
+            "uuid": "d7f09213-dc57-48cd-800c-00ce1a6654d1",
+            "version": [1, 0, 0]
+        },
+        {
+            "module_name": "@minecraft/server",
+            "version": "2.1.0"
+        },
+        {
+            "module_name": "@minecraft/server-ui",
+            "version": "2.0.0"
+        }
     ],
-    "min_engine_version": [
-      1,
-      21,
-      80
-    ]
-  },
-  "modules": [
-    {
-      "type": "data",
-      "uuid": "539abd4c-e198-4c02-a138-dacce846d12a",
-      "version": [
-        1,
-        0,
-        1
-      ]
-    },
-    {
-      "type": "script",
-      "language": "javascript",
-      "uuid": "90b245fe-572d-4d55-822e-321d43f72ad5",
-      "version": [
-        1,
-        0,
-        1
-      ],
-      "entry": "scripts/main.js",
-      "name": "Dev commands Script"
-    }
-  ],
-  "dependencies": [
-    {
-      "uuid": "6041de61-9a63-4314-8281-b246aaf93397",
-      "version": [
-        1,
-        0,
-        0
-      ]
-    },
-    {
-      "module_name": "@minecraft/server",
-      "version": "2.1.0"
-    },
-    {
-      "module_name": "@minecraft/server-ui",
-      "version": "2.0.0"
-    }
-  ],
-  "capabilities": [
-    "script_eval"
-  ]
+    "capabilities": ["script_eval"]
 }
